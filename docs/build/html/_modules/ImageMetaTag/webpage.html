@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ImageMetaTag.webpage &#8212; ImageMetaTag 0.8.2 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinxdoc.css?v=34905f61" />
     <script src="../../_static/documentation_options.js?v=dbee5847"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
@@ -75,10 +75,10 @@
 <span class="sd">Released under BSD 3-Clause License. See LICENSE for more details.</span>
 <span class="sd">&#39;&#39;&#39;</span>
 
-<span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">json</span><span class="o">,</span> <span class="nn">pdb</span><span class="o">,</span> <span class="nn">shutil</span><span class="o">,</span> <span class="nn">tempfile</span><span class="o">,</span> <span class="nn">copy</span><span class="o">,</span> <span class="nn">zlib</span>
-<span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="kn">import</span> <span class="n">Pool</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">ImageMetaTag</span> <span class="k">as</span> <span class="nn">imt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">pdb</span><span class="o">,</span><span class="w"> </span><span class="nn">shutil</span><span class="o">,</span><span class="w"> </span><span class="nn">tempfile</span><span class="o">,</span><span class="w"> </span><span class="nn">copy</span><span class="o">,</span><span class="w"> </span><span class="nn">zlib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pool</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">ImageMetaTag</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">imt</span>
 
 
 <span class="c1"># single indent to be used on the output webpage</span>
@@ -96,7 +96,7 @@
 
 <div class="viewcode-block" id="write_full_page">
 <a class="viewcode-back" href="../../webpage.html#ImageMetaTag.webpage.write_full_page">[docs]</a>
-<span class="k">def</span> <span class="nf">write_full_page</span><span class="p">(</span><span class="n">img_dict</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">page_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tab_s_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_full_page</span><span class="p">(</span><span class="n">img_dict</span><span class="p">,</span> <span class="n">filepath</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">page_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tab_s_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">preamble</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">postamble</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">postamble_no_imt_link</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                     <span class="n">compression</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                     <span class="n">initial_selectors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show_selector_names</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -419,7 +419,7 @@
 
 <div class="viewcode-block" id="write_js_to_header">
 <a class="viewcode-back" href="../../webpage.html#ImageMetaTag.webpage.write_js_to_header">[docs]</a>
-<span class="k">def</span> <span class="nf">write_js_to_header</span><span class="p">(</span><span class="n">img_dict</span><span class="p">,</span> <span class="n">initial_selectors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">optgroups</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_js_to_header</span><span class="p">(</span><span class="n">img_dict</span><span class="p">,</span> <span class="n">initial_selectors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">optgroups</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">file_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">json_files</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">js_css_files</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">pagename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tabname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">selector_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">show_singleton_selectors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -659,7 +659,7 @@
 
         <span class="c1"># END of the imt specifc header content:</span>
 
-<span class="k">def</span> <span class="nf">write_js_setup_defaults</span><span class="p">(</span><span class="n">selector_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">list_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">file_list_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_js_setup_defaults</span><span class="p">(</span><span class="n">selector_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">list_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">file_list_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    this specifies defaults for the internal names the different selectors, associated lists for</span>
 <span class="sd">    the selectors, and the list of files (all with a numbered suffix)</span>
@@ -674,7 +674,7 @@
 
 <div class="viewcode-block" id="write_json">
 <a class="viewcode-back" href="../../webpage.html#ImageMetaTag.webpage.write_json">[docs]</a>
-<span class="k">def</span> <span class="nf">write_json</span><span class="p">(</span><span class="n">img_dict</span><span class="p">,</span> <span class="n">file_name_no_ext</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_json</span><span class="p">(</span><span class="n">img_dict</span><span class="p">,</span> <span class="n">file_name_no_ext</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                <span class="n">chunk_char_limit</span><span class="o">=</span><span class="mf">1e7</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Writes a json dump of the :class:`ImageMetaTag.ImageDict` tree strucuture</span>
@@ -688,7 +688,7 @@
 <span class="sd">    Returns a list of json files as (tempfile, final_file) tuples.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
 
-    <span class="k">def</span> <span class="nf">json_from_dict</span><span class="p">(</span><span class="n">in_dict</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">json_from_dict</span><span class="p">(</span><span class="n">in_dict</span><span class="p">):</span>
         <span class="s1">&#39;returns a json string from an input dict&#39;</span>
         <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">in_dict</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;:&#39;</span><span class="p">))</span>
 
@@ -812,7 +812,7 @@
     <span class="k">return</span> <span class="n">out_files</span></div>
 
 
-<span class="k">def</span> <span class="nf">compress_string</span><span class="p">(</span><span class="n">in_str</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compress_string</span><span class="p">(</span><span class="n">in_str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Compresses a string using zlib to a format that can be read with pako.</span>
 <span class="sd">    Returns both the compressed string and the file mode to use.</span>
@@ -830,7 +830,7 @@
 
 <div class="viewcode-block" id="write_js_placeholders">
 <a class="viewcode-back" href="../../webpage.html#ImageMetaTag.webpage.write_js_placeholders">[docs]</a>
-<span class="k">def</span> <span class="nf">write_js_placeholders</span><span class="p">(</span><span class="n">img_dict</span><span class="p">,</span> <span class="n">file_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dict_depth</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">write_js_placeholders</span><span class="p">(</span><span class="n">img_dict</span><span class="p">,</span> <span class="n">file_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dict_depth</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                           <span class="n">selector_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                           <span class="n">style</span><span class="o">=</span><span class="s1">&#39;horiz dropdowns&#39;</span><span class="p">,</span> <span class="n">level_names</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                           <span class="n">show_singleton_selectors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -974,7 +974,7 @@
 
 <div class="viewcode-block" id="copy_required_js_css_etc">
 <a class="viewcode-back" href="../../webpage.html#ImageMetaTag.webpage.copy_required_js_css_etc">[docs]</a>
-<span class="k">def</span> <span class="nf">copy_required_js_css_etc</span><span class="p">(</span><span class="n">file_dir</span><span class="p">,</span> <span class="n">style</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">copy_required_js_css_etc</span><span class="p">(</span><span class="n">file_dir</span><span class="p">,</span> <span class="n">style</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                              <span class="n">last_img_in_list_is_slider</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Copies the required javascript library to the directory</span>
@@ -1071,14 +1071,14 @@
 
 
 
-<span class="k">def</span> <span class="nf">get_pako</span><span class="p">(</span><span class="n">pako_to_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_pako</span><span class="p">(</span><span class="n">pako_to_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Obtains the required pako javascript code from remote host, to a given</span>
 <span class="sd">    javascript directory. If the javascript dir is not supplied, then</span>
 <span class="sd">    the &#39;javascript&#39; directory alongside the ImageMetaTag python code is used.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
-    <span class="kn">import</span> <span class="nn">tarfile</span>
-    <span class="kn">from</span> <span class="nn">urllib.request</span> <span class="kn">import</span> <span class="n">urlopen</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">tarfile</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.request</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlopen</span>
 
     <span class="c1"># set up pako into the current imt_dir:</span>
     <span class="k">if</span> <span class="n">pako_to_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1106,19 +1106,19 @@
     <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">targz_file</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_indent_up_one</span><span class="p">(</span><span class="n">ind</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_indent_up_one</span><span class="p">(</span><span class="n">ind</span><span class="p">):</span>
     <span class="s1">&#39;increases the indent level of an input ind by one&#39;</span>
     <span class="n">n_indents</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span> <span class="o">/</span> <span class="n">LEN_INDENT</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">INDENT</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_indents</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_indent_down_one</span><span class="p">(</span><span class="n">ind</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_indent_down_one</span><span class="p">(</span><span class="n">ind</span><span class="p">):</span>
     <span class="s1">&#39;decreases the indent level of an input ind by one&#39;</span>
     <span class="n">n_indents</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span> <span class="o">/</span> <span class="n">LEN_INDENT</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">INDENT</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="n">n_indents</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_py_to_js_bool</span><span class="p">(</span><span class="n">py_bool</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_py_to_js_bool</span><span class="p">(</span><span class="n">py_bool</span><span class="p">):</span>
     <span class="s1">&#39;Converts a python boolean to a string, in javascript bool format (all lower case)&#39;</span>
     <span class="k">if</span> <span class="n">py_bool</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
         <span class="k">return</span> <span class="s1">&#39;true&#39;</span>
