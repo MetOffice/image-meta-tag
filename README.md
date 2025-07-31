@@ -12,4 +12,4 @@ The files ImageMetaTag/javascript/img_comparison_slider_styles.css and ImageMeta
 
 Supported image file formats: png
 
-Documentation is available via [GitHub Pages](http://scitools-incubator.github.io/image-meta-tag/build/html/index.html "ImageMetaTag Documentation on GitHub Pages")
+Documentation is available via [GitHub Pages](http://metoffice.github.io/image-meta-tag/build/html/index.html "ImageMetaTag Documentation on GitHub Pages")
