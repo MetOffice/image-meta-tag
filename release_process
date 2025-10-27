@@ -45,8 +45,8 @@ This will also make a dist/ folder for uploading to pypi later.
 From this point onwards, admin rights are required to both image-meta-tag and image-meta-tag-feedstock repositories.
 
 
-8) Pulbish a release in the image-meta-tag repository for the new release
-number at: https://github.com/SciTools-incubator/image-meta-tag/releases
+8) Publish a release in the image-meta-tag repository for the new release
+number at: https://github.com/MetOffice/image-meta-tag/releases
  * Tag version is just the version number e.g. '0.6.7' in the code.
  * The convention used for the release title adds 'vn' before the number, e.g.
    'vn0.6.7'
@@ -69,7 +69,7 @@ number at: https://github.com/SciTools-incubator/image-meta-tag/releases
  * Update the recipe/meta.yaml
    * The version should point to the new version tag e.g. '0.6.7'
    * To get the sha256 values, download the tar file for the release, e.g.:
-       https://github.com/SciTools-incubator/image-meta-tag/archive/0.6.7.tar.gz
+       https://github.com/MetOffice/image-meta-tag/archive/0.6.7.tar.gz
      Then get the sha256sum of the tar file.
  * Commit to change with   git commit -a
  * Push the change to origin   git push origin vn0.6.7

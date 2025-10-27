@@ -26,7 +26,7 @@ import platform
 # Set constants/properties of ImageMetaTag (before any of it is imported)
 # see release_process for details on incrementing the version
 __version__ = '0.8.2'
-__documentation__ = 'http://scitools-incubator.github.io/image-meta-tag/build/html/'
+__documentation__ = 'http://metoffice.github.io/image-meta-tag/build/html/index.html'
 # list fo file formats which are valid for saving metadata to:
 META_IMG_FORMATS = ['png']
 # and which can do image post-processing

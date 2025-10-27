@@ -2,8 +2,8 @@
 '''
 Deletes images from disk and an ImageMetaTag database in a consistent way.
 
-The ImageMetaTag package: https://github.com/SciTools-incubator/image-meta-tag
-and http://scitools-incubator.github.io/image-meta-tag/build/html/index.html
+The ImageMetaTag package: https://github.com/MetOffice/image-meta-tag
+and http://metoffice.github.io/image-meta-tag/build/html/index.html
 
 This script operates on a ImageMetaTag database file (imt.db in any examples).
 
