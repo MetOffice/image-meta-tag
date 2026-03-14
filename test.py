@@ -728,7 +728,7 @@ def __main__():
 
     ie_warning = "If the page does not load correctly in Internet Explorer, please try using firefox or Chrome."
     web_out[out_page_para] = imt.webpage.write_full_page(img_dict, out_page_para,
-                                                         'Test ImageDict webpage (Parallel)',
+                                                         'Parrallel - Test ImageDict webpage',
                                                          preamble=webpage_preamble,
                                                          postamble=webpage_postamble,
                                                          verbose=True,
@@ -736,14 +736,14 @@ def __main__():
                                                          load_err_msg=ie_warning)
     if not args.minimal:
         web_out[out_page_multi] = imt.webpage.write_full_page(img_dict_multi, out_page_multi,
-                                                              'Test ImageDict webpage',
+                                                              'multi image - Test ImageDict webpage',
                                                               preamble=webpage_preamble,
                                                               postamble=webpage_postamble,
                                                               postamble_no_imt_link=True,
                                                               last_img_in_list_is_slider=True,
                                                               verbose=True, url_type='str')
         web_out[out_page_css] = imt.webpage.write_full_page(img_dict_multi, out_page_css,
-                                                            'Test ImageDict webpage with CSS',
+                                                            'CSS, multi image - Test ImageDict webpage',
                                                             preamble=webpage_preamble,
                                                             postamble=webpage_postamble,
                                                             verbose=True, only_show_rel_url=True,
@@ -755,7 +755,7 @@ def __main__():
                                                             css=test_css)
 
         web_out[out_page_slider] = imt.webpage.write_full_page(img_dict_sliders, out_page_slider,
-                                                              'Test ImageDict webpage, with Sliders',
+                                                              'Explicit Slider - Test ImageDict webpage',
                                                               preamble=webpage_preamble,
                                                               postamble=webpage_postamble,
                                                               postamble_no_imt_link=True,
@@ -1139,7 +1139,7 @@ def plot_random_data(random_data, i_rand, plot_col, col_name, trims, borders,
                     img_count += 1
 
     plt.close()
-    outfile = '%s/dist_%s_%s.%s' % (img_savedir, n_rolls, plot_col, img_format)
+
     if PY3:
         _count, _bins, _ignored = plt.hist(random_data[i_rand],
                                            [x + 0.5 for x in range(13)],
@@ -1150,6 +1150,7 @@ def plot_random_data(random_data, i_rand, plot_col, col_name, trims, borders,
                                            color=plot_col, normed=True)
 
     plt.xlim([1, 13])
+    plt.ylim([0, 0.4])
     plt.title('Distribution of %s random integers between 1 and 6\n' % n_rolls)
 
     for trim in trims:
@@ -1499,7 +1500,6 @@ def test_compare_img_tags(img_tags1, name1, img_tags2, name2):
                 raise ValueError(msg.format(keys_diff))
 
 
-
 def test_make_img_dict_sliders(images_and_tags, tagorder, img_dict,
                                selector_animated=None, animation_direction=None,
                                level_names=None, selector_widths=None):
@@ -1509,6 +1509,8 @@ def test_make_img_dict_sliders(images_and_tags, tagorder, img_dict,
     slider_combos = [['Histogram', 'Line plots']]
     slider_show_2nd_img = False
 
+    # for this example, the 2 images with a smaller sample will have the
+    # plot for a larger sample size overlaid as a slider...
     slider_acts_on = 'number of rolls'
     slider_combos = [['36 simulated rolls', '216 simulated rolls'],
                      ['6 simulated rolls', '216 simulated rolls']]
