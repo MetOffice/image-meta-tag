@@ -772,148 +772,7 @@ def __main__():
 
         # now, finally, produce a large ImageDict:
         if not args.no_biggus_dictus:
-            print('Producing a very large ImageDict, as a scalability and speed test')
-            # Make a large input dictionary, not actual images though.
-            # That would take up a lot of disk space!
-            # We don't need to be big or clever for this, it's a test, so simple and readable is fine.
-            # factorial(9) is ~300K 'images', which is comparable in scale to the forecast monitoring
-            # plots this code runs in the Met Office.
-
-            # store this in a database:
-            bigdb = '%s/big.db' % webdir
-
-            first_img = True
-            date_start_bigdb = datetime.now()
-            biggus_dictus = {}
-            i_count = 0
-            n_to_do = math.factorial(9)
-            n_to_do_flt = float(math.factorial(9))
-            dt_prev = datetime.now()
-            pcents = list(range(5, 101, 5)) # write out every 5% completed
-            for i_1 in range(1):
-                for i_2 in range(2):
-                    for i_3 in range(3):
-                        for i_4 in range(4):
-                            for i_5 in range(5):
-                                for i_6 in range(6):
-                                    for i_7 in range(7):
-                                        for i_8 in range(8):
-                                            for i_9 in range(9):
-                                                # we don't want to actually make an image!
-                                                img_name = 'no_image_{}_{}_{}_{}_{}_{}_{}_{}_{}.png'
-                                                img_name = img_name.format(i_1, i_2, i_3, i_4, i_5,
-                                                                           i_6, i_7, i_8, i_9)
-                                                img_info = {'l1': 'Lev 1: %s' % i_1,
-                                                            'l2': 'Lev 2: %s' % i_2,
-                                                            'l3': 'Lev 3: %s' % i_3,
-                                                            'l4': 'Lev 4: %s' % i_4,
-                                                            'l5': 'Lev 5: %s' % i_5,
-                                                            'l6': 'Lev 6: %s' % i_6,
-                                                            'l7': 'Lev 7: %s' % i_7,
-                                                            'l8': 'Lev 8: %s' % i_8,
-                                                            'l9': 'Lev 9: %s' % i_9}
-                                                biggus_dictus[img_name] = img_info
-                                                if first_img:
-                                                    bigdb_cn, bigdb_cr = imt.db.open_or_create_db_file(bigdb,
-                                                                                                       img_info,
-                                                                                                       restart_db=True)
-                                                    first_img = False
-                                                imt.db.write_img_to_open_db(bigdb_cr, img_name, img_info)
-                                                i_count += 1
-                                                pcent_done = 100 * i_count / n_to_do_flt
-                                                if pcent_done > pcents[0]:
-                                                    dt_now = datetime.now()
-                                                    msg = '{} out of {} ({:.2f}%) {}'
-                                                    print(msg.format(i_count,
-                                                                     n_to_do,
-                                                                     pcent_done,
-                                                                     dt_now - dt_prev))
-                                                    dt_prev = dt_now
-                                                    # remove the current percentage:
-                                                    pcents.pop(0)
-            print('  input dictionary complete, with %s elements' % len(biggus_dictus))
-
-            bigdb_cn.commit()
-            bigdb_cn.close()
-            print_simple_timer(date_start_bigdb, datetime.now(),
-                               'Producing large dictionary and database')
-
-            # verfiy the integrity of the database, relative to biggus_dictus:
-            db_imgs, db_img_tags = imt.db.read(bigdb)
-            img_list = sorted(biggus_dictus.keys())
-            db_imgs.sort()
-            if img_list != db_imgs:
-                msg = ('List of plots differ between memory and '
-                       'database versions of big dict')
-                raise ValueError(msg)
-            if biggus_dictus != db_img_tags:
-                msg = ('images_and_tags differ between memory and '
-                       'database versions of big dict')
-                raise ValueError(msg)
-
-            # run through the big dict, and delete a smallish subset of
-            # 'images' from the big database
-            db_imgs, db_img_tags = imt.db.read(bigdb)
-            len_b4_del = len(db_imgs)
-            print('Length of large database before deleting subset {}'.format(len_b4_del))
-            del_list = db_imgs[500::1000]
-            imt.db.del_plots_from_dbfile(bigdb, del_list)
-
-            db_imgs, db_img_tags = imt.db.read(bigdb)
-            len_aft_del = len(db_imgs)
-            print('Length of large database after deleting subset {}'.format(len_aft_del))
-            # and check it's the right length, to see if some data is actually gone:
-            if len_b4_del != len_aft_del + len(del_list):
-                raise ValueError('Inconsistent database size after deleting subset.')
-
-            # test reading only a subset of the files:
-            n_samples = 500
-            db_imgs, db_img_tags = imt.db.read(bigdb, n_samples=n_samples)
-            len_sample = len(db_imgs)
-            if len_sample != n_samples:
-                raise ValueError('error loading subsample from database')
-            print('Tested ability to load a random subset of images - OK')
-
-            # now process that big dict in parallel to an ImageDict, with this tag order:
-            tagorder = ['l1', 'l2', 'l3', 'l4', 'l5', 'l6', 'l7', 'l8', 'l9']
-            date_start_big = datetime.now()
-            n_proc = 4
-            # for large dictionaries, we really do want this skip_key_relist set to True,
-            # as it saves a lot of time:
-            skip_key_relist = True
-            subdict_gen = imt.dict_split(biggus_dictus, n_split=n_proc,
-                                         extra_opts=(tagorder, skip_key_relist, None, None))
-            if n_proc == 1:
-                # much easier to debug when not using the parallel calls:
-                pool_out = []
-                for in_tuple in subdict_gen:
-                    # now run the web_dir_process_images, and append the output to pool_out
-                    pool_out.append(define_img_dict_in_tuple(in_tuple))
-            else:
-                # now in parallel:
-                proc_pool = Pool(n_proc)
-                pool_out = proc_pool.map(define_img_dict_in_tuple, subdict_gen)
-                proc_pool.close()
-                proc_pool.join()
-            # now stitch the parallel image dict back together:
-            biggus_dictus_imigus = pool_out[0]
-            for i_dict in range(1, len(pool_out)):
-                biggus_dictus_imigus.append(pool_out[i_dict])
-
-            # because we have appended to the dict without regenerating the
-            # lists, so do that now:
-            biggus_dictus_imigus.list_keys_by_depth()
-            print_simple_timer(date_start_big, datetime.now(),
-                               'Large parallel dict processing')
-            # and now make we big dict webpage (and time it too)
-            date_start_web = datetime.now()
-            out_page_big = '%s/biggus_pageus.html' % webdir
-            web_out[out_page_big] = imt.webpage.write_full_page(biggus_dictus_imigus,
-                                                                out_page_big,
-                                                                'Test ImageDict webpage',
-                                                                compression=True)
-            print_simple_timer(date_start_web, datetime.now(),
-                               'Large dict webpage')
+            test_biggus_dictus(webdir, web_out)
 
         if not args.no_db_rebuild:
             print('Testing imt.db.scan_dir_for_db')
@@ -1364,6 +1223,153 @@ table {
     with open(css_file, 'w') as file_obj:
         file_obj.write(css_content)
     return css_file
+
+
+def test_biggus_dictus(webdir, web_out):
+    'tests making and working with very very large databases'
+
+    print('Producing a very large ImageDict, as a scalability and speed test')
+    # Make a large input dictionary, not actual images though.
+    # That would take up a lot of disk space!
+    # We don't need to be big or clever for this, it's a test, so simple and readable is fine.
+    # factorial(9) is ~300K 'images', which is comparable in scale to the forecast monitoring
+    # plots this code runs in the Met Office.
+
+    # store this in a database:
+    bigdb = os.path.join(webdir, 'big.db')
+
+    first_img = True
+    date_start_bigdb = datetime.now()
+    biggus_dictus = {}
+    i_count = 0
+    n_to_do = math.factorial(9)
+    n_to_do_flt = float(math.factorial(9))
+    dt_prev = datetime.now()
+    pcents = list(range(5, 101, 5))  # write out every 5% completed
+    for i_1 in range(1):
+        for i_2 in range(2):
+            for i_3 in range(3):
+                for i_4 in range(4):
+                    for i_5 in range(5):
+                        for i_6 in range(6):
+                            for i_7 in range(7):
+                                for i_8 in range(8):
+                                    for i_9 in range(9):
+                                        # we don't want to actually make an image!
+                                        img_name = 'no_image_{}_{}_{}_{}_{}_{}_{}_{}_{}.png'
+                                        img_name = img_name.format(i_1, i_2, i_3, i_4, i_5,
+                                                                   i_6, i_7, i_8, i_9)
+                                        img_info = {'l1': 'Lev 1: %s' % i_1,
+                                                    'l2': 'Lev 2: %s' % i_2,
+                                                    'l3': 'Lev 3: %s' % i_3,
+                                                    'l4': 'Lev 4: %s' % i_4,
+                                                    'l5': 'Lev 5: %s' % i_5,
+                                                    'l6': 'Lev 6: %s' % i_6,
+                                                    'l7': 'Lev 7: %s' % i_7,
+                                                    'l8': 'Lev 8: %s' % i_8,
+                                                    'l9': 'Lev 9: %s' % i_9}
+                                        biggus_dictus[img_name] = img_info
+                                        if first_img:
+                                            bigdb_cn, bigdb_cr = imt.db.open_or_create_db_file(bigdb,
+                                                                                               img_info,
+                                                                                               restart_db=True)
+                                            first_img = False
+                                        imt.db.write_img_to_open_db(bigdb_cr, img_name, img_info)
+                                        i_count += 1
+                                        pcent_done = 100 * i_count / n_to_do_flt
+                                        if pcent_done > pcents[0]:
+                                            dt_now = datetime.now()
+                                            msg = '{} out of {} ({:.2f}%) {}'
+                                            print(msg.format(i_count,
+                                                             n_to_do,
+                                                             pcent_done,
+                                                             dt_now - dt_prev))
+                                            dt_prev = dt_now
+                                            # remove the current percentage:
+                                            pcents.pop(0)
+    print('  input dictionary complete, with %s elements' % len(biggus_dictus))
+
+    bigdb_cn.commit()
+    bigdb_cn.close()
+    print_simple_timer(date_start_bigdb, datetime.now(),
+                       'Producing large dictionary and database')
+
+    # verfiy the integrity of the database, relative to biggus_dictus:
+    db_imgs, db_img_tags = imt.db.read(bigdb)
+    img_list = sorted(biggus_dictus.keys())
+    db_imgs.sort()
+    if img_list != db_imgs:
+        msg = ('List of plots differ between memory and '
+               'database versions of big dict')
+        raise ValueError(msg)
+    if biggus_dictus != db_img_tags:
+        msg = ('images_and_tags differ between memory and '
+               'database versions of big dict')
+        raise ValueError(msg)
+
+    # run through the big dict, and delete a smallish subset of
+    # 'images' from the big database
+    db_imgs, db_img_tags = imt.db.read(bigdb)
+    len_b4_del = len(db_imgs)
+    print('Length of large database before deleting subset {}'.format(len_b4_del))
+    del_list = db_imgs[500::1000]
+    imt.db.del_plots_from_dbfile(bigdb, del_list)
+
+    db_imgs, db_img_tags = imt.db.read(bigdb)
+    len_aft_del = len(db_imgs)
+    print('Length of large database after deleting subset {}'.format(len_aft_del))
+    # and check it's the right length, to see if some data is actually gone:
+    if len_b4_del != len_aft_del + len(del_list):
+        raise ValueError('Inconsistent database size after deleting subset.')
+
+    # test reading only a subset of the files:
+    n_samples = 500
+    db_imgs, db_img_tags = imt.db.read(bigdb, n_samples=n_samples)
+    len_sample = len(db_imgs)
+    if len_sample != n_samples:
+        raise ValueError('error loading subsample from database')
+    print('Tested ability to load a random subset of images - OK')
+
+    # now process that big dict in parallel to an ImageDict, with this tag order:
+    tagorder = ['l1', 'l2', 'l3', 'l4', 'l5', 'l6', 'l7', 'l8', 'l9']
+    date_start_big = datetime.now()
+    n_proc = 4
+    # for large dictionaries, we really do want this skip_key_relist set to True,
+    # as it saves a lot of time:
+    skip_key_relist = True
+    subdict_gen = imt.dict_split(biggus_dictus, n_split=n_proc,
+                                 extra_opts=(tagorder, skip_key_relist, None, None))
+    if n_proc == 1:
+        # much easier to debug when not using the parallel calls:
+        pool_out = []
+        for in_tuple in subdict_gen:
+            # now run the web_dir_process_images, and append the output to pool_out
+            pool_out.append(define_img_dict_in_tuple(in_tuple))
+    else:
+        # now in parallel:
+        proc_pool = Pool(n_proc)
+        pool_out = proc_pool.map(define_img_dict_in_tuple, subdict_gen)
+        proc_pool.close()
+        proc_pool.join()
+    # now stitch the parallel image dict back together:
+    biggus_dictus_imigus = pool_out[0]
+    for i_dict in range(1, len(pool_out)):
+        biggus_dictus_imigus.append(pool_out[i_dict])
+
+    # because we have appended to the dict without regenerating the
+    # lists, so do that now:
+    biggus_dictus_imigus.list_keys_by_depth()
+    print_simple_timer(date_start_big, datetime.now(),
+                       'Large parallel dict processing')
+    # and now make we big dict webpage (and time it too)
+    date_start_web = datetime.now()
+    out_page_big = os.path.join(webdir, 'biggus_pageus.html')
+    web_out[out_page_big] = imt.webpage.write_full_page(biggus_dictus_imigus,
+                                                        out_page_big,
+                                                        'Test ImageDict webpage',
+                                                        compression=True)
+    print_simple_timer(date_start_web, datetime.now(),
+                       'Large dict webpage')
 
 
 def test_key_sorting():
