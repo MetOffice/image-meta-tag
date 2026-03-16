@@ -68,546 +68,7 @@ DATE_FORMAT_WWW = "%Y-%m-%d"
 print('ImageMetaTag from "{}"'.format(imt.__path__[0]))
 
 
-def get_webdir(minimal=False):
-    '''
-    Works out the location to use as webdir in this test run. This is done in
-    a function only because it can be imported into simplest_img_dict.py to
-    keep it consistent. In a real application you can just specify a location
-    on your file system that is web-accessible.
-    '''
-    home = os.getenv('HOME')
-    webdir = None
-
-    if minimal:
-        imt_subdir = os.path.join('ImageMetaTagTest', 'minimal')
-    else:
-        imt_subdir = 'ImageMetaTagTest'
-
-    dirs_to_check = ['%s/public_html' % home, '%s/Public' % home]
-    for check_dir in dirs_to_check:
-        if os.path.isdir(check_dir):
-            webdir = os.path.join(check_dir, imt_subdir)
-            break
-    if not webdir:
-        msg = 'Cannot find appropriate web dir from: {}'
-        raise ValueError(msg.format(dirs_to_check))
-
-    # make it if it doesn't exist:
-    if not os.path.isdir(webdir):
-        mkdir_p(webdir)
-
-    return webdir
-
-
-def define_imt_db(wipe=False, minimal=False):
-    'Defines the main database file to use to the image metadate:'
-    imt_db = '{}/imt.db'.format(get_webdir(minimal=minimal))
-    if wipe and os.path.isfile(imt_db):
-        os.remove(imt_db)
-
-    return imt_db
-
-
-def get_user_and_email():
-    '''
-    guesses the users email address from /etc/aliases.
-    This is an example of the sort of traceability information would be
-    a very common tag to add to images.
-    '''
-    username = os.getenv('USER')
-    user_email = None
-    alias_file = '/etc/aliases'
-    if os.path.isfile(alias_file):
-        with open(alias_file, 'r') as open_file:
-            for line in open_file:
-                if line.startswith(username):
-                    user_email = line.split()[-1]
-                    break
-
-    user_and_email = 'user: %s' % username
-    if user_email:
-        user_and_email += ', email: %s' % user_email
-    return user_and_email
-
-
-def make_random_data(n_random_data, seed=3):
-    '''
-    generates some data sets of random data, simulating rolling 2 D6 a number
-    of times. In order to produce predictable random data for testing, the
-    random seed needs to be initialised.
-    By default the seed is 3:
-         "Then, shalt thou count to three. No more. No less."
-    '''
-    random_data = []
-    # simulate rolling 2 6 sided dice:
-    np.random.seed(seed)
-    for i_rand in range(n_random_data):
-        # make some actual random data:
-        if i_rand < 6:
-            n_rolls = 6 ** (i_rand + 1)
-        else:
-            n_rolls = 6 ** (6) + 2 ** (i_rand + 1)
-        random_data.append(np.random.randint(1, 6, n_rolls) +
-                           np.random.randint(1, 6, n_rolls))
-    return random_data
-
-
-def plot_random_data(random_data, i_rand, plot_col, col_name, trims, borders,
-                     compression_levels, dpis, img_savedir, img_format, plot_owner,
-                     imt_db):
-    'plots a set of random data'
-
-    # to tag the images with the routine that created it:
-    this_routine = 'ImageMetaTag module: lib/ImageMetaTag/test.py'
-
-    imt_verbose = True
-    images_and_tags = {}
-
-    db_timeout = 5
-
-    n_rolls = 6 ** (i_rand + 1)
-    plt.plot(random_data[i_rand], color=plot_col, linestyle=':', marker='x')
-    plt.ylim([1, 12])
-
-    if plot_col == 'r':
-        plt.title(('Sum of two random integers between 1 and 6, with '
-                   'an extremely long title.\n'))
-    else:
-        plt.title('Sum of two random integers between 1 and 6\n')
-
-    # make the subdirectories:
-    mkdir_p('{}/rolls'.format(img_savedir))
-    mkdir_p('{}/dists'.format(img_savedir))
-
-    data_source = 'Some random data'
-
-    img_count = 0
-
-    # save the figure, using different image-meta-tag options
-    # and tag the images.
-    for trim in trims:
-        if trim:
-            these_borders = borders
-        else:
-            these_borders = [0]
-        for border in these_borders:
-            for compression in compression_levels:
-                for dpi in dpis:
-                    outfile = '%s/rolls/imt_%s_%s_compression_%s' \
-                            % (img_savedir, n_rolls, plot_col, compression)
-                    outfile = 'imt_{}_{}_comp{}_{}dpi'.format(n_rolls,
-                                                               plot_col,
-                                                               compression,
-                                                               dpi)
-                    outfile = os.path.join(img_savedir, 'rolls', outfile)
-                    if trim:
-                        outfile += '_trim_b%s' % border
-                        trim_str = 'Image trimmed'
-                    else:
-                        trim_str = 'Image untrimmed'
-                    outfile += '.{}'.format(img_format)
-                    # image tags for the web page:
-                    img_tags = {'number of rolls': '{} simulated rolls'.format(n_rolls),
-                                'plot type': 'Line plots',
-                                'image compression': 'Compression option {}'.format(compression),
-                                'image trim': trim_str,
-                                'border': '{} pixels'.format(border),
-                                'plot color': col_name,
-                                'expected dpi': '{} dpi'.format(dpi)}
-
-                    # and other, more general tags showing the sort of
-                    # thing that might be useful:
-                    img_tags['data source'] = data_source
-                    img_tags['plot owner'] = plot_owner
-                    img_tags['plot created by'] = this_routine
-                    img_tags['ImageMetaTag version'] = imt.__version__
-                    if img_count > 1 and img_count < 10:
-                        # only add this one after the database exists,
-                        # to test expandning the database:
-                        img_tags['SQL-char-name:in_tag'] = 'testing SQL chars'
-                    # now save the file with imt.savefig
-                    # (deleting any pre-existing file first):
-                    if os.path.isfile(outfile):
-                        os.remove(outfile)
-                    imt.savefig(outfile, do_trim=trim, trim_border=border,
-                                do_thumb=True, img_converter=compression,
-                                img_tags=img_tags, keep_open=True,
-                                verbose=imt_verbose,
-                                db_file=imt_db, db_timeout=db_timeout,
-                                db_add_strict=False,
-                                dpi=dpi,
-                                logo_file=LOGO_FILE, logo_width=LOGO_SIZE,
-                                logo_padding=LOGO_PADDING, logo_pos=0)
-                    # now store those tags
-                    images_and_tags[outfile] = img_tags
-                    # and check they are the same as those that come from reading
-                    # the image metatadata from disk:
-                    check_img_tags(outfile, img_tags)
-                    img_count += 1
-
-    plt.close()
-    outfile = '%s/dist_%s_%s.%s' % (img_savedir, n_rolls, plot_col, img_format)
-    if PY3:
-        _count, _bins, _ignored = plt.hist(random_data[i_rand],
-                                           [x + 0.5 for x in range(13)],
-                                           color=plot_col, density=True)
-    else:
-        _count, _bins, _ignored = plt.hist(random_data[i_rand],
-                                           [x + 0.5 for x in range(13)],
-                                           color=plot_col, normed=True)
-
-    plt.xlim([1, 13])
-    plt.title('Distribution of %s random integers between 1 and 6\n' % n_rolls)
-
-    for trim in trims:
-        if trim:
-            these_borders = borders
-        else:
-            these_borders = [0]
-        for border in these_borders:
-            for compression in compression_levels:
-                for dpi in dpis:
-                    outfile = 'imt_{}_{}_comp{}_{}dpi'.format(n_rolls,
-                                                               plot_col,
-                                                               compression,
-                                                               dpi)
-                    outfile = os.path.join(img_savedir, 'dists', outfile)
-                    if trim:
-                        outfile += '_trim_b%s' % border
-                        trim_str = 'Image trimmed'
-                    else:
-                        trim_str = 'Image untrimmed'
-                    outfile += '.{}'.format(img_format)
-                    # tags to drive web page:
-                    img_tags = {'number of rolls': '{} simulated rolls'.format(n_rolls),
-                                'plot type': 'Histogram',
-                                'image compression': 'Compression option {}'.format(compression),
-                                'image trim': trim_str,
-                                'border': '{} pixels'.format(border),
-                                'plot color': col_name,
-                                'expected dpi': '{} dpi'.format(dpi)}
-                    # again, more general tags:
-                    img_tags['data source'] = data_source
-                    img_tags['plot owner'] = plot_owner
-                    img_tags['plot created by'] = this_routine
-                    img_tags['ImageMetaTag version'] = imt.__version__
-                    img_tags['SQL-char-name:in_tag'] = 'testing SQL chars'
-                    # now save the file with imt.savefig
-                    # (deleting any pre-existing file first):
-                    if os.path.isfile(outfile):
-                        os.remove(outfile)
-                    imt.savefig(outfile, do_trim=trim, trim_border=border,
-                                do_thumb=True, img_converter=compression,
-                                img_tags=img_tags, keep_open=True,
-                                verbose=imt_verbose,
-                                db_file=imt_db, db_timeout=db_timeout,
-                                db_add_strict=False,
-                                dpi=dpi,
-                                logo_file=[LOGO_FILE, LOGO_FILE],
-                                logo_height=LOGO_SIZE//2,
-                                logo_padding=LOGO_PADDING, logo_pos=[1, 1])
-                    # log tags:
-                    images_and_tags[outfile] = img_tags
-                    # and check:
-                    check_img_tags(outfile, img_tags)
-                    img_count += 1
-    plt.close()
-
-    # NOTE: in actual usage, it's easier to refer to the database when you
-    # need to get image metadata. In this test script we need to test the
-    # integrity of the database, so we need to pass back the images
-    # and tags we expect:
-    return images_and_tags
-
-
-def mkdir_p(path):
-    """
-    Routine to mimic mkdir -p behaviour
-    Note: os.makedirs throws up error if directory already exists
-    """
-    try:
-        os.makedirs(path)
-    except OSError as exc:
-        if exc.errno == errno.EEXIST:
-            pass
-        else:
-            raise
-
-
-def print_simple_timer(dt_start, dt_end, label):
-    'prints out a simple timer message'
-    msg = '{}: started at {}, completed at {}, taking {}'
-    print(msg.format(label,
-                     dt_start.strftime(DATE_FORMAT),
-                     dt_end.strftime(DATE_FORMAT),
-                     (dt_end - dt_start)))
-
-
-def check_img_tags(img_file, in_tags):
-    '''
-    raises an error if the tags read from a file do not
-    match those written to it, or are unreadable
-    '''
-    (read_ok, read_tags) = imt.readmeta_from_image(img_file)
-    if not read_ok:
-        raise ValueError('Unable to read image tags for file "%s"' % img_file)
-    # now check the tags themselves:
-    if not set(in_tags).issubset(set(read_tags)):
-        msg = 'Image metadata tags read from file "%s"' % img_file
-        msg += 'do not match the expected tags.\n'
-        msg += '  Input tags:\n'
-        for key, val in list(in_tags.items()):
-            msg += '     "%s" : "%s"\n' % (key, val)
-        msg += '  Tags read from file:\n'
-        for key, val in list(read_tags.items()):
-            msg += '     "%s" : "%s"\n' % (key, val)
-        raise ValueError(msg)
-
-
-def define_img_dict_in_tuple(in_tuple):
-    '''
-    Defines a simple ImageDict from a dictionary of images and metadata.
-    The input is a tuple so it can be parallelised.
-    '''
-
-    sub_dict = in_tuple[0]
-    tag_order = in_tuple[1]
-    skip_key_relist = in_tuple[2]
-    selector_animated = in_tuple[3]
-    animation_direction = in_tuple[4]
-
-    img_dict = None
-    # now assemble the ImageDict:
-    # This is the simple way, but it is possible to parallelise this step,
-    # which I might include below:
-    for img_file, img_info in sub_dict.items():
-        tmp_dict = imt.dict_heirachy_from_list(img_info, img_file, tag_order)
-        if not tmp_dict:
-            raise ValueError('Input dict does not contain the required keys')
-        if not img_dict:
-            img_dict = imt.ImageDict(tmp_dict,
-                                     selector_animated=selector_animated,
-                                     animation_direction=animation_direction)
-        else:
-            # the skip_key_relist option is useful to set to True for Large
-            # dictionaries. It stops the key lists being regenerated each time
-            # something is appended.
-            img_dict.append(imt.ImageDict(tmp_dict),
-                            skip_key_relist=skip_key_relist)
-    return img_dict
-
-
-def make_test_css(webdir):
-    'writes out a test.css file in a specified directory'
-
-    css_file = os.path.join(webdir, 'test.css')
-
-    css_content = '''body {
-  background-color: #d3eeed;
-  color: black;
-}
-body, div, dl, dt, dd, li, h1, h2 {
-  margin: 0;
-  padding: 0;
-}
-h3, h4, h5, h6, pre, form, fieldset, input {
-  margin: 0;
-  padding: 0;
-}
-textarea, p, blockquote, th, td {
-  margin: 0;
-  padding: 0;
-}
-fieldset, img {
-  border: 0 none;
-}
-body {
-  font: 12px Myriad,Helvetica,Tahoma,Arial,clean,sans-serif;
-  *font-size: 75%;
-}
-h1 {
-  font-size: 1.5em;
-  font-weight: normal;
-  line-height: 1em;
-  margin-top: 1em;
-  margin-bottom:0;
-}
-h2 {
-  font-size: 1.1667em;
-  font-weight: bold;
-  line-height: 1.286em;
-  margin-top: 1.929em;
-  margin-bottom:0.643em;
-}
-h3, h4, h5, h6 {
-  font-size: 1em;
-  font-weight: bold;
-  line-height: 1.5em;
-  margin-top: 1.5em;
-  margin-bottom: 0;
-}
-p {
-  font-size: 1em;
-  margin-top: 1.5em;
-  margin-bottom: 1.5em;
-  line-height: 1.5em;
-}
-pre, code {
-  font-size:115%;
-  *font-size:100%;
-  font-family: Courier, "Courier New";
-  background-color: #efefef;
-  border: 1px solid #ccc;
-}
-pre {
-  border-width: 1px 0;
-  padding: 1.5em;
-}
-table {
-  font-size:100%;
-}
-'''
-    with open(css_file, 'w') as file_obj:
-        file_obj.write(css_content)
-    return css_file
-
-
-def test_key_sorting():
-    '''
-    Tests that the different variants of sorting in an ImageDict work
-    are working correctly. These are not all used in the type of web pages
-    used in the main tests so they are tested directly.
-    '''
-
-    # for each type of test, define the input keys and how they should be when
-    # they are sorted:
-    sort_tests = {}
-
-    # a straight alphabetical sort - the tuple here gives the
-    # (input, expected output) for the type of sort:
-    sort_tests['sort'] = (['aaa', 'zaa', 'aba', '257', 'bob'],
-                          ['257', 'aaa', 'aba', 'bob', 'zaa'])
-    # a reversed alphabetical sort:
-    sort_tests['reverse sort'] = (['aaa', 'zaa', 'aba', '257', 'bob'],
-                                  ['zaa', 'bob', 'aba', 'aaa', '257'])
-    # T+ - used for forecast lead times, so sort by the value after the T+
-    # and anything with None gets alphabetically sorted at the end
-    sort_tests['T+'] = (['T+0', 'T+1', 't+10', 'T+2', 't-3',
-                         'T+None', 't-None', 'None'],
-                        ['t-3', 'T+0', 'T+1', 'T+2', 't+10',
-                         'None', 'T+None', 't-None'])
-    # here, we will use a list to sort by, and anything not in the list
-    # gets a simple sort:
-    sort_by_list = ['aaa', 'zaa']
-    sort_tests['sort_by_list'] = (['aaa', 'zaa', 'aba', '257', 'bob'],
-                                  ['aaa', 'zaa', '257', 'aba', 'bob'])
-    # a set of numeric values common in meteorology:
-    sort_tests['numeric'] = (['10m', '50m', '4mm', '62 hPa', '2m', '16 km',
-                              'Model level 7', 'Surface', '12mb', '341.434646',
-                              'Eastern England',
-                              '3.344E, 16.7N', '2.344E, 18.7N', '16.0 nm'],
-                             ['Surface', '16.0 nm', '4mm', '2m', '10m', '50m',
-                              '16 km', '62 hPa', '12mb', 'Model level 7',
-                              '2.344E, 18.7N', '3.344E, 16.7N', '341.434646',
-                              'Eastern England',])
-    # these get used/modified while prepping the sort:
-    sort_tests_copy = copy.deepcopy(sort_tests)
-
-    test_order = sorted(sort_tests.keys())
-    n_sorts_to_test = len(test_order)
-    # make a dummy ImageDict
-    dummy_tag_order = []
-    dummy_tag_info = {}
-    for level in range(n_sorts_to_test):
-        lname = 'l{}'.format(level)
-        dummy_tag_order.append(lname)
-        dummy_tag_info[lname] = str(level)
-    tmp_dict = imt.dict_heirachy_from_list(dummy_tag_info,
-                                           'None', dummy_tag_order)
-    img_dict = imt.ImageDict(tmp_dict)
-
-    # now overide the keys of imd_dict with the keys we want to test,
-    # and make the list of how each level is to be sorted:
-    sort_methods = []
-    for level, test_name in enumerate(test_order):
-        img_dict.keys[level] = sort_tests[test_name][0]
-        if test_name == 'sort_by_list':
-            sort_methods.append(sort_by_list)
-        else:
-            sort_methods.append(test_name)
-    # now do the sort:
-    img_dict.sort_keys(sort_methods)
-
-    # now go through the sort methods and check the output is as expected:
-    failed = False
-    for level, test_name in enumerate(test_order):
-        if img_dict.keys[level] == sort_tests[test_name][1]:
-            pass
-        else:
-            msg = ('Sort method test "{}" has failed to correctly'
-                   'sort its ImageDict keys:\n'
-                   '  Input list: {}\n'
-                   '  Sorted list: {}\n'
-                   '  Expected list: {}\n')
-            print(msg.format(test_name,
-                             sort_tests_copy[test_name][0],
-                             img_dict.keys[level],
-                             sort_tests[test_name][1]))
-            failed = True
-
-    return not failed
-
-
-def test_compare_img_tags(img_tags1, name1, img_tags2, name2):
-    '''
-    Tests a set of images and metadata tags.
-     * img_tags1 - dict of images, and their metadata tags
-     * name1 - name of img_tags1 for error reporting only
-     * img_tags2 - second dict of images, and their metadata tags
-     * name2 - name of img_tags2 for error reporting only
-
-    This is not a simple '==' test, as the database will have None when the
-    item is missing for fields that are defined for some images, but not
-    all, images.
-    '''
-
-    # firstly check the keys:
-    imgs1 = sorted(img_tags1.keys())
-    imgs2 = sorted(img_tags2.keys())
-    if imgs1 != imgs2:
-        in1_not2 = set(imgs1).difference(set(imgs2))
-        in2_not1 = set(imgs2).difference(set(imgs1))
-
-        msg = ('image names in img_tags1 differ to image names in img_tags2.\n'
-               '  images in {0}(1), but not {1}(2): {2}\n'
-               '  images in {1}(2), but not {0}(1): {3}')
-        raise ValueError(msg.format(name1, name2, in1_not2, in2_not1))
-
-    for img in imgs1:
-        if img_tags1[img] != img_tags2[img]:
-            # test that all of the keys for this img that are shared,
-            # are equal:
-            i_t_keys = set(img_tags1[img].keys())
-            d_t_keys = set(img_tags2[img].keys())
-            common_keys = i_t_keys.intersection(d_t_keys)
-            for key in common_keys:
-                if img_tags1[img][key] != img_tags2[img][key]:
-                    msg = ('tags in "{}" for file "{}", tag "{}" ("{}") '
-                           'different to that in "{}" ("{}")')
-                    raise ValueError(msg.format(name1, img, key,
-                                                img_tags1[img][key],
-                                                name2, img_tags2[img][key]))
-
-            # in the current tests, the only difference should be that
-            # sometimes the 'SQL-char-name:in_tag' tag isn't present:
-            keys_diff = i_t_keys.symmetric_difference(d_t_keys)
-            if keys_diff != set(['SQL-char-name:in_tag']):
-                msg = 'Unexpected difference in keys in databases: {}'
-                raise ValueError(msg.format(keys_diff))
-
-
 def __main__():
-
     # parse the arguments, straight fail if there's a problem.
     parser = argparse.ArgumentParser(
                     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -891,6 +352,15 @@ def __main__():
     if len(array_indsf[1]) != len(db_img_tags):
         raise ValueError('Mismatched indices and image array lengths')
 
+    # now test making a web page with scpecifed sliders:
+    img_dict_sliders = test_make_img_dict_sliders(images_and_tags, tagorder,
+                                                  img_dict,
+                                                  selector_animated=selector_animated,
+                                                  animation_direction=animation_direction,
+                                                  level_names=sel_names_list,
+                                                  selector_widths=sel_widths_list
+                                                  )
+
     # now reorganise the img_dict to merge some of the images together
     # (to display multiple images side-by-side)
     #
@@ -920,6 +390,9 @@ def __main__():
     # does the multi image require that ALL of the images is
     # specifies are available, in order to present anything?
     multi_req_all = True
+
+    slider_acts_on = 'plot color'
+    slider_pairs = ['Plotted in Red', 'Plotted in Green']
 
     # now do the work to reorganise (with a time around it):
     date_start_reorg_multi = datetime.now()
@@ -1167,14 +640,16 @@ def __main__():
         os.remove(os.path.join(webdir, 'imt_dropdown.js'))
 
     # now create a web page for each of them:
-    out_page = '%s/page.html' % webdir
-    out_page_para = '%s/page_para.html' % webdir
+    out_page = os.path.join(webdir, 'page.html')
+    out_page_para = os.path.join(webdir, 'page_para.html')
 
     if not args.minimal:
-        out_page_multi = '%s/page_multi.html' % webdir
+        out_page_multi = os.path.join(webdir, 'page_multi.html')
         # another test page, this time specifying the css:
         test_css = make_test_css(webdir)
-        out_page_css = '%s/page_css.html' % webdir
+        out_page_css = os.path.join(webdir, 'page_css.html')
+        # and a test for sliders:
+        out_page_slider = os.path.join(webdir, 'page_slider.html')
 
     shutil.copy(LOGO_FILE, '%s/logo.png' % webdir)
 
@@ -1253,7 +728,7 @@ def __main__():
 
     ie_warning = "If the page does not load correctly in Internet Explorer, please try using firefox or Chrome."
     web_out[out_page_para] = imt.webpage.write_full_page(img_dict, out_page_para,
-                                                         'Test ImageDict webpage (Parallel)',
+                                                         'Parrallel - Test ImageDict webpage',
                                                          preamble=webpage_preamble,
                                                          postamble=webpage_postamble,
                                                          verbose=True,
@@ -1261,14 +736,14 @@ def __main__():
                                                          load_err_msg=ie_warning)
     if not args.minimal:
         web_out[out_page_multi] = imt.webpage.write_full_page(img_dict_multi, out_page_multi,
-                                                              'Test ImageDict webpage',
+                                                              'multi image - Test ImageDict webpage',
                                                               preamble=webpage_preamble,
                                                               postamble=webpage_postamble,
                                                               postamble_no_imt_link=True,
                                                               last_img_in_list_is_slider=True,
                                                               verbose=True, url_type='str')
         web_out[out_page_css] = imt.webpage.write_full_page(img_dict_multi, out_page_css,
-                                                            'Test ImageDict webpage with CSS',
+                                                            'CSS, multi image - Test ImageDict webpage',
                                                             preamble=webpage_preamble,
                                                             postamble=webpage_postamble,
                                                             verbose=True, only_show_rel_url=True,
@@ -1278,6 +753,15 @@ def __main__():
                                                             show_singleton_selectors=False,
                                                             compression=test_zlib_compression,
                                                             css=test_css)
+
+        web_out[out_page_slider] = imt.webpage.write_full_page(img_dict_sliders, out_page_slider,
+                                                              'Explicit Slider - Test ImageDict webpage',
+                                                              preamble=webpage_preamble,
+                                                              postamble=webpage_postamble,
+                                                              postamble_no_imt_link=True,
+                                                              last_img_in_list_is_slider=False,
+                                                              show_singleton_selectors=False,
+                                                              verbose=True, url_type='str')
     sorts_work = test_key_sorting()
     if sorts_work:
         print('Sorting tests pass OK')
@@ -1288,148 +772,7 @@ def __main__():
 
         # now, finally, produce a large ImageDict:
         if not args.no_biggus_dictus:
-            print('Producing a very large ImageDict, as a scalability and speed test')
-            # Make a large input dictionary, not actual images though.
-            # That would take up a lot of disk space!
-            # We don't need to be big or clever for this, it's a test, so simple and readable is fine.
-            # factorial(9) is ~300K 'images', which is comparable in scale to the forecast monitoring
-            # plots this code runs in the Met Office.
-
-            # store this in a database:
-            bigdb = '%s/big.db' % webdir
-
-            first_img = True
-            date_start_bigdb = datetime.now()
-            biggus_dictus = {}
-            i_count = 0
-            n_to_do = math.factorial(9)
-            n_to_do_flt = float(math.factorial(9))
-            dt_prev = datetime.now()
-            pcents = list(range(5, 101, 5)) # write out every 5% completed
-            for i_1 in range(1):
-                for i_2 in range(2):
-                    for i_3 in range(3):
-                        for i_4 in range(4):
-                            for i_5 in range(5):
-                                for i_6 in range(6):
-                                    for i_7 in range(7):
-                                        for i_8 in range(8):
-                                            for i_9 in range(9):
-                                                # we don't want to actually make an image!
-                                                img_name = 'no_image_{}_{}_{}_{}_{}_{}_{}_{}_{}.png'
-                                                img_name = img_name.format(i_1, i_2, i_3, i_4, i_5,
-                                                                           i_6, i_7, i_8, i_9)
-                                                img_info = {'l1': 'Lev 1: %s' % i_1,
-                                                            'l2': 'Lev 2: %s' % i_2,
-                                                            'l3': 'Lev 3: %s' % i_3,
-                                                            'l4': 'Lev 4: %s' % i_4,
-                                                            'l5': 'Lev 5: %s' % i_5,
-                                                            'l6': 'Lev 6: %s' % i_6,
-                                                            'l7': 'Lev 7: %s' % i_7,
-                                                            'l8': 'Lev 8: %s' % i_8,
-                                                            'l9': 'Lev 9: %s' % i_9}
-                                                biggus_dictus[img_name] = img_info
-                                                if first_img:
-                                                    bigdb_cn, bigdb_cr = imt.db.open_or_create_db_file(bigdb,
-                                                                                                       img_info,
-                                                                                                       restart_db=True)
-                                                    first_img = False
-                                                imt.db.write_img_to_open_db(bigdb_cr, img_name, img_info)
-                                                i_count += 1
-                                                pcent_done = 100 * i_count / n_to_do_flt
-                                                if pcent_done > pcents[0]:
-                                                    dt_now = datetime.now()
-                                                    msg = '{} out of {} ({:.2f}%) {}'
-                                                    print(msg.format(i_count,
-                                                                     n_to_do,
-                                                                     pcent_done,
-                                                                     dt_now - dt_prev))
-                                                    dt_prev = dt_now
-                                                    # remove the current percentage:
-                                                    pcents.pop(0)
-            print('  input dictionary complete, with %s elements' % len(biggus_dictus))
-
-            bigdb_cn.commit()
-            bigdb_cn.close()
-            print_simple_timer(date_start_bigdb, datetime.now(),
-                               'Producing large dictionary and database')
-
-            # verfiy the integrity of the database, relative to biggus_dictus:
-            db_imgs, db_img_tags = imt.db.read(bigdb)
-            img_list = sorted(biggus_dictus.keys())
-            db_imgs.sort()
-            if img_list != db_imgs:
-                msg = ('List of plots differ between memory and '
-                       'database versions of big dict')
-                raise ValueError(msg)
-            if biggus_dictus != db_img_tags:
-                msg = ('images_and_tags differ between memory and '
-                       'database versions of big dict')
-                raise ValueError(msg)
-
-            # run through the big dict, and delete a smallish subset of
-            # 'images' from the big database
-            db_imgs, db_img_tags = imt.db.read(bigdb)
-            len_b4_del = len(db_imgs)
-            print('Length of large database before deleting subset {}'.format(len_b4_del))
-            del_list = db_imgs[500::1000]
-            imt.db.del_plots_from_dbfile(bigdb, del_list)
-
-            db_imgs, db_img_tags = imt.db.read(bigdb)
-            len_aft_del = len(db_imgs)
-            print('Length of large database after deleting subset {}'.format(len_aft_del))
-            # and check it's the right length, to see if some data is actually gone:
-            if len_b4_del != len_aft_del + len(del_list):
-                raise ValueError('Inconsistent database size after deleting subset.')
-
-            # test reading only a subset of the files:
-            n_samples = 500
-            db_imgs, db_img_tags = imt.db.read(bigdb, n_samples=n_samples)
-            len_sample = len(db_imgs)
-            if len_sample != n_samples:
-                raise ValueError('error loading subsample from database')
-            print('Tested ability to load a random subset of images - OK')
-
-            # now process that big dict in parallel to an ImageDict, with this tag order:
-            tagorder = ['l1', 'l2', 'l3', 'l4', 'l5', 'l6', 'l7', 'l8', 'l9']
-            date_start_big = datetime.now()
-            n_proc = 4
-            # for large dictionaries, we really do want this skip_key_relist set to True,
-            # as it saves a lot of time:
-            skip_key_relist = True
-            subdict_gen = imt.dict_split(biggus_dictus, n_split=n_proc,
-                                         extra_opts=(tagorder, skip_key_relist, None, None))
-            if n_proc == 1:
-                # much easier to debug when not using the parallel calls:
-                pool_out = []
-                for in_tuple in subdict_gen:
-                    # now run the web_dir_process_images, and append the output to pool_out
-                    pool_out.append(define_img_dict_in_tuple(in_tuple))
-            else:
-                # now in parallel:
-                proc_pool = Pool(n_proc)
-                pool_out = proc_pool.map(define_img_dict_in_tuple, subdict_gen)
-                proc_pool.close()
-                proc_pool.join()
-            # now stitch the parallel image dict back together:
-            biggus_dictus_imigus = pool_out[0]
-            for i_dict in range(1, len(pool_out)):
-                biggus_dictus_imigus.append(pool_out[i_dict])
-
-            # because we have appended to the dict without regenerating the
-            # lists, so do that now:
-            biggus_dictus_imigus.list_keys_by_depth()
-            print_simple_timer(date_start_big, datetime.now(),
-                               'Large parallel dict processing')
-            # and now make we big dict webpage (and time it too)
-            date_start_web = datetime.now()
-            out_page_big = '%s/biggus_pageus.html' % webdir
-            web_out[out_page_big] = imt.webpage.write_full_page(biggus_dictus_imigus,
-                                                                out_page_big,
-                                                                'Test ImageDict webpage',
-                                                                compression=True)
-            print_simple_timer(date_start_web, datetime.now(),
-                               'Large dict webpage')
+            test_biggus_dictus(webdir, web_out)
 
         if not args.no_db_rebuild:
             print('Testing imt.db.scan_dir_for_db')
@@ -1475,6 +818,778 @@ def __main__():
                                 img_tags={'test': 'value'})
 
     print('test.py completed')
+
+
+def get_webdir(minimal=False):
+    '''
+    Works out the location to use as webdir in this test run. This is done in
+    a function only because it can be imported into simplest_img_dict.py to
+    keep it consistent. In a real application you can just specify a location
+    on your file system that is web-accessible.
+    '''
+    home = os.getenv('HOME')
+    webdir = None
+
+    if minimal:
+        imt_subdir = os.path.join('ImageMetaTagTest', 'minimal')
+    else:
+        imt_subdir = 'ImageMetaTagTest'
+
+    dirs_to_check = ['%s/public_html' % home, '%s/Public' % home]
+    for check_dir in dirs_to_check:
+        if os.path.isdir(check_dir):
+            webdir = os.path.join(check_dir, imt_subdir)
+            break
+    if not webdir:
+        msg = 'Cannot find appropriate web dir from: {}'
+        raise ValueError(msg.format(dirs_to_check))
+
+    # make it if it doesn't exist:
+    if not os.path.isdir(webdir):
+        mkdir_p(webdir)
+
+    return webdir
+
+
+def define_imt_db(wipe=False, minimal=False):
+    'Defines the main database file to use to the image metadate:'
+    imt_db = '{}/imt.db'.format(get_webdir(minimal=minimal))
+    if wipe and os.path.isfile(imt_db):
+        os.remove(imt_db)
+
+    return imt_db
+
+
+def get_user_and_email():
+    '''
+    guesses the users email address from /etc/aliases.
+    This is an example of the sort of traceability information would be
+    a very common tag to add to images.
+    '''
+    username = os.getenv('USER')
+    user_email = None
+    alias_file = '/etc/aliases'
+    if os.path.isfile(alias_file):
+        with open(alias_file, 'r') as open_file:
+            for line in open_file:
+                if line.startswith(username):
+                    user_email = line.split()[-1]
+                    break
+
+    user_and_email = 'user: %s' % username
+    if user_email:
+        user_and_email += ', email: %s' % user_email
+    return user_and_email
+
+
+def make_random_data(n_random_data, seed=3):
+    '''
+    generates some data sets of random data, simulating rolling 2 D6 a number
+    of times. In order to produce predictable random data for testing, the
+    random seed needs to be initialised.
+    By default the seed is 3:
+         "Then, shalt thou count to three. No more. No less."
+    '''
+    random_data = []
+    # simulate rolling 2 6 sided dice:
+    np.random.seed(seed)
+    for i_rand in range(n_random_data):
+        # make some actual random data:
+        if i_rand < 6:
+            n_rolls = 6 ** (i_rand + 1)
+        else:
+            n_rolls = 6 ** (6) + 2 ** (i_rand + 1)
+        random_data.append(np.random.randint(1, 6, n_rolls) +
+                           np.random.randint(1, 6, n_rolls))
+    return random_data
+
+
+def plot_random_data(random_data, i_rand, plot_col, col_name, trims, borders,
+                     compression_levels, dpis, img_savedir, img_format, plot_owner,
+                     imt_db):
+    'plots a set of random data'
+
+    # to tag the images with the routine that created it:
+    this_routine = 'ImageMetaTag module: lib/ImageMetaTag/test.py'
+
+    imt_verbose = True
+    images_and_tags = {}
+
+    db_timeout = 5
+
+    n_rolls = 6 ** (i_rand + 1)
+    plt.plot(random_data[i_rand], color=plot_col, linestyle=':', marker='x')
+    plt.ylim([1, 12])
+
+    if plot_col == 'r':
+        plt.title(('Sum of two random integers between 1 and 6, with '
+                   'an extremely long title.\n'))
+    else:
+        plt.title('Sum of two random integers between 1 and 6\n')
+
+    # make the subdirectories:
+    mkdir_p('{}/rolls'.format(img_savedir))
+    mkdir_p('{}/dists'.format(img_savedir))
+
+    data_source = 'Some random data'
+
+    img_count = 0
+
+    # save the figure, using different image-meta-tag options
+    # and tag the images.
+    for trim in trims:
+        if trim:
+            these_borders = borders
+        else:
+            these_borders = [0]
+        for border in these_borders:
+            for compression in compression_levels:
+                for dpi in dpis:
+                    outfile = '%s/rolls/imt_%s_%s_compression_%s' \
+                            % (img_savedir, n_rolls, plot_col, compression)
+                    outfile = 'imt_{}_{}_comp{}_{}dpi'.format(n_rolls,
+                                                               plot_col,
+                                                               compression,
+                                                               dpi)
+                    outfile = os.path.join(img_savedir, 'rolls', outfile)
+                    if trim:
+                        outfile += '_trim_b%s' % border
+                        trim_str = 'Image trimmed'
+                    else:
+                        trim_str = 'Image untrimmed'
+                    outfile += '.{}'.format(img_format)
+                    # image tags for the web page:
+                    img_tags = {'number of rolls': '{} simulated rolls'.format(n_rolls),
+                                'plot type': 'Line plots',
+                                'image compression': 'Compression option {}'.format(compression),
+                                'image trim': trim_str,
+                                'border': '{} pixels'.format(border),
+                                'plot color': col_name,
+                                'expected dpi': '{} dpi'.format(dpi)}
+
+                    # and other, more general tags showing the sort of
+                    # thing that might be useful:
+                    img_tags['data source'] = data_source
+                    img_tags['plot owner'] = plot_owner
+                    img_tags['plot created by'] = this_routine
+                    img_tags['ImageMetaTag version'] = imt.__version__
+                    if img_count > 1 and img_count < 10:
+                        # only add this one after the database exists,
+                        # to test expandning the database:
+                        img_tags['SQL-char-name:in_tag'] = 'testing SQL chars'
+                    # now save the file with imt.savefig
+                    # (deleting any pre-existing file first):
+                    if os.path.isfile(outfile):
+                        os.remove(outfile)
+                    imt.savefig(outfile, do_trim=trim, trim_border=border,
+                                do_thumb=True, img_converter=compression,
+                                img_tags=img_tags, keep_open=True,
+                                verbose=imt_verbose,
+                                db_file=imt_db, db_timeout=db_timeout,
+                                db_add_strict=False,
+                                dpi=dpi,
+                                logo_file=LOGO_FILE, logo_width=LOGO_SIZE,
+                                logo_padding=LOGO_PADDING, logo_pos=0)
+                    # now store those tags
+                    images_and_tags[outfile] = img_tags
+                    # and check they are the same as those that come from reading
+                    # the image metatadata from disk:
+                    check_img_tags(outfile, img_tags)
+                    img_count += 1
+
+    plt.close()
+
+    if PY3:
+        _count, _bins, _ignored = plt.hist(random_data[i_rand],
+                                           [x + 0.5 for x in range(13)],
+                                           color=plot_col, density=True)
+    else:
+        _count, _bins, _ignored = plt.hist(random_data[i_rand],
+                                           [x + 0.5 for x in range(13)],
+                                           color=plot_col, normed=True)
+
+    plt.xlim([1, 13])
+    plt.ylim([0, 0.4])
+    plt.title('Distribution of %s random integers between 1 and 6\n' % n_rolls)
+
+    for trim in trims:
+        if trim:
+            these_borders = borders
+        else:
+            these_borders = [0]
+        for border in these_borders:
+            for compression in compression_levels:
+                for dpi in dpis:
+                    outfile = 'imt_{}_{}_comp{}_{}dpi'.format(n_rolls,
+                                                               plot_col,
+                                                               compression,
+                                                               dpi)
+                    outfile = os.path.join(img_savedir, 'dists', outfile)
+                    if trim:
+                        outfile += '_trim_b%s' % border
+                        trim_str = 'Image trimmed'
+                    else:
+                        trim_str = 'Image untrimmed'
+                    outfile += '.{}'.format(img_format)
+                    # tags to drive web page:
+                    img_tags = {'number of rolls': '{} simulated rolls'.format(n_rolls),
+                                'plot type': 'Histogram',
+                                'image compression': 'Compression option {}'.format(compression),
+                                'image trim': trim_str,
+                                'border': '{} pixels'.format(border),
+                                'plot color': col_name,
+                                'expected dpi': '{} dpi'.format(dpi)}
+                    # again, more general tags:
+                    img_tags['data source'] = data_source
+                    img_tags['plot owner'] = plot_owner
+                    img_tags['plot created by'] = this_routine
+                    img_tags['ImageMetaTag version'] = imt.__version__
+                    img_tags['SQL-char-name:in_tag'] = 'testing SQL chars'
+                    # now save the file with imt.savefig
+                    # (deleting any pre-existing file first):
+                    if os.path.isfile(outfile):
+                        os.remove(outfile)
+                    imt.savefig(outfile, do_trim=trim, trim_border=border,
+                                do_thumb=True, img_converter=compression,
+                                img_tags=img_tags, keep_open=True,
+                                verbose=imt_verbose,
+                                db_file=imt_db, db_timeout=db_timeout,
+                                db_add_strict=False,
+                                dpi=dpi,
+                                logo_file=[LOGO_FILE, LOGO_FILE],
+                                logo_height=LOGO_SIZE//2,
+                                logo_padding=LOGO_PADDING, logo_pos=[1, 1])
+                    # log tags:
+                    images_and_tags[outfile] = img_tags
+                    # and check:
+                    check_img_tags(outfile, img_tags)
+                    img_count += 1
+    plt.close()
+
+    # NOTE: in actual usage, it's easier to refer to the database when you
+    # need to get image metadata. In this test script we need to test the
+    # integrity of the database, so we need to pass back the images
+    # and tags we expect:
+    return images_and_tags
+
+
+def mkdir_p(path):
+    """
+    Routine to mimic mkdir -p behaviour
+    Note: os.makedirs throws up error if directory already exists
+    """
+    try:
+        os.makedirs(path)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST:
+            pass
+        else:
+            raise
+
+
+def print_simple_timer(dt_start, dt_end, label):
+    'prints out a simple timer message'
+    msg = '{}: started at {}, completed at {}, taking {}'
+    print(msg.format(label,
+                     dt_start.strftime(DATE_FORMAT),
+                     dt_end.strftime(DATE_FORMAT),
+                     (dt_end - dt_start)))
+
+
+def check_img_tags(img_file, in_tags):
+    '''
+    raises an error if the tags read from a file do not
+    match those written to it, or are unreadable
+    '''
+    (read_ok, read_tags) = imt.readmeta_from_image(img_file)
+    if not read_ok:
+        raise ValueError('Unable to read image tags for file "%s"' % img_file)
+    # now check the tags themselves:
+    if not set(in_tags).issubset(set(read_tags)):
+        msg = 'Image metadata tags read from file "%s"' % img_file
+        msg += 'do not match the expected tags.\n'
+        msg += '  Input tags:\n'
+        for key, val in list(in_tags.items()):
+            msg += '     "%s" : "%s"\n' % (key, val)
+        msg += '  Tags read from file:\n'
+        for key, val in list(read_tags.items()):
+            msg += '     "%s" : "%s"\n' % (key, val)
+        raise ValueError(msg)
+
+
+def define_img_dict_in_tuple(in_tuple):
+    '''
+    Defines a simple ImageDict from a dictionary of images and metadata.
+    The input is a tuple so it can be parallelised.
+    '''
+
+    sub_dict = in_tuple[0]
+    tag_order = in_tuple[1]
+    skip_key_relist = in_tuple[2]
+    selector_animated = in_tuple[3]
+    animation_direction = in_tuple[4]
+
+    img_dict = None
+    # now assemble the ImageDict:
+    # This is the simple way, but it is possible to parallelise this step,
+    # which I might include below:
+    for img_file, img_info in sub_dict.items():
+        tmp_dict = imt.dict_heirachy_from_list(img_info, img_file, tag_order)
+        if not tmp_dict:
+            raise ValueError('Input dict does not contain the required keys')
+        if not img_dict:
+            img_dict = imt.ImageDict(tmp_dict,
+                                     selector_animated=selector_animated,
+                                     animation_direction=animation_direction)
+        else:
+            # the skip_key_relist option is useful to set to True for Large
+            # dictionaries. It stops the key lists being regenerated each time
+            # something is appended.
+            img_dict.append(imt.ImageDict(tmp_dict),
+                            skip_key_relist=skip_key_relist)
+    return img_dict
+
+
+def make_test_css(webdir):
+    'writes out a test.css file in a specified directory'
+
+    css_file = os.path.join(webdir, 'test.css')
+
+    css_content = '''body {
+  background-color: #d3eeed;
+  color: black;
+}
+body, div, dl, dt, dd, li, h1, h2 {
+  margin: 0;
+  padding: 0;
+}
+h3, h4, h5, h6, pre, form, fieldset, input {
+  margin: 0;
+  padding: 0;
+}
+textarea, p, blockquote, th, td {
+  margin: 0;
+  padding: 0;
+}
+fieldset, img {
+  border: 0 none;
+}
+body {
+  font: 12px Myriad,Helvetica,Tahoma,Arial,clean,sans-serif;
+  *font-size: 75%;
+}
+h1 {
+  font-size: 1.5em;
+  font-weight: normal;
+  line-height: 1em;
+  margin-top: 1em;
+  margin-bottom:0;
+}
+h2 {
+  font-size: 1.1667em;
+  font-weight: bold;
+  line-height: 1.286em;
+  margin-top: 1.929em;
+  margin-bottom:0.643em;
+}
+h3, h4, h5, h6 {
+  font-size: 1em;
+  font-weight: bold;
+  line-height: 1.5em;
+  margin-top: 1.5em;
+  margin-bottom: 0;
+}
+p {
+  font-size: 1em;
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+  line-height: 1.5em;
+}
+pre, code {
+  font-size:115%;
+  *font-size:100%;
+  font-family: Courier, "Courier New";
+  background-color: #efefef;
+  border: 1px solid #ccc;
+}
+pre {
+  border-width: 1px 0;
+  padding: 1.5em;
+}
+table {
+  font-size:100%;
+}
+'''
+    with open(css_file, 'w') as file_obj:
+        file_obj.write(css_content)
+    return css_file
+
+
+def test_biggus_dictus(webdir, web_out):
+    'tests making and working with very very large databases'
+
+    print('Producing a very large ImageDict, as a scalability and speed test')
+    # Make a large input dictionary, not actual images though.
+    # That would take up a lot of disk space!
+    # We don't need to be big or clever for this, it's a test, so simple and readable is fine.
+    # factorial(9) is ~300K 'images', which is comparable in scale to the forecast monitoring
+    # plots this code runs in the Met Office.
+
+    # store this in a database:
+    bigdb = os.path.join(webdir, 'big.db')
+
+    first_img = True
+    date_start_bigdb = datetime.now()
+    biggus_dictus = {}
+    i_count = 0
+    n_to_do = math.factorial(9)
+    n_to_do_flt = float(math.factorial(9))
+    dt_prev = datetime.now()
+    pcents = list(range(5, 101, 5))  # write out every 5% completed
+    for i_1 in range(1):
+        for i_2 in range(2):
+            for i_3 in range(3):
+                for i_4 in range(4):
+                    for i_5 in range(5):
+                        for i_6 in range(6):
+                            for i_7 in range(7):
+                                for i_8 in range(8):
+                                    for i_9 in range(9):
+                                        # we don't want to actually make an image!
+                                        img_name = 'no_image_{}_{}_{}_{}_{}_{}_{}_{}_{}.png'
+                                        img_name = img_name.format(i_1, i_2, i_3, i_4, i_5,
+                                                                   i_6, i_7, i_8, i_9)
+                                        img_info = {'l1': 'Lev 1: %s' % i_1,
+                                                    'l2': 'Lev 2: %s' % i_2,
+                                                    'l3': 'Lev 3: %s' % i_3,
+                                                    'l4': 'Lev 4: %s' % i_4,
+                                                    'l5': 'Lev 5: %s' % i_5,
+                                                    'l6': 'Lev 6: %s' % i_6,
+                                                    'l7': 'Lev 7: %s' % i_7,
+                                                    'l8': 'Lev 8: %s' % i_8,
+                                                    'l9': 'Lev 9: %s' % i_9}
+                                        biggus_dictus[img_name] = img_info
+                                        if first_img:
+                                            bigdb_cn, bigdb_cr = imt.db.open_or_create_db_file(bigdb,
+                                                                                               img_info,
+                                                                                               restart_db=True)
+                                            first_img = False
+                                        imt.db.write_img_to_open_db(bigdb_cr, img_name, img_info)
+                                        i_count += 1
+                                        pcent_done = 100 * i_count / n_to_do_flt
+                                        if pcent_done > pcents[0]:
+                                            dt_now = datetime.now()
+                                            msg = '{} out of {} ({:.2f}%) {}'
+                                            print(msg.format(i_count,
+                                                             n_to_do,
+                                                             pcent_done,
+                                                             dt_now - dt_prev))
+                                            dt_prev = dt_now
+                                            # remove the current percentage:
+                                            pcents.pop(0)
+    print('  input dictionary complete, with %s elements' % len(biggus_dictus))
+
+    bigdb_cn.commit()
+    bigdb_cn.close()
+    print_simple_timer(date_start_bigdb, datetime.now(),
+                       'Producing large dictionary and database')
+
+    # verfiy the integrity of the database, relative to biggus_dictus:
+    db_imgs, db_img_tags = imt.db.read(bigdb)
+    img_list = sorted(biggus_dictus.keys())
+    db_imgs.sort()
+    if img_list != db_imgs:
+        msg = ('List of plots differ between memory and '
+               'database versions of big dict')
+        raise ValueError(msg)
+    if biggus_dictus != db_img_tags:
+        msg = ('images_and_tags differ between memory and '
+               'database versions of big dict')
+        raise ValueError(msg)
+
+    # run through the big dict, and delete a smallish subset of
+    # 'images' from the big database
+    db_imgs, db_img_tags = imt.db.read(bigdb)
+    len_b4_del = len(db_imgs)
+    print('Length of large database before deleting subset {}'.format(len_b4_del))
+    del_list = db_imgs[500::1000]
+    imt.db.del_plots_from_dbfile(bigdb, del_list)
+
+    db_imgs, db_img_tags = imt.db.read(bigdb)
+    len_aft_del = len(db_imgs)
+    print('Length of large database after deleting subset {}'.format(len_aft_del))
+    # and check it's the right length, to see if some data is actually gone:
+    if len_b4_del != len_aft_del + len(del_list):
+        raise ValueError('Inconsistent database size after deleting subset.')
+
+    # test reading only a subset of the files:
+    n_samples = 500
+    db_imgs, db_img_tags = imt.db.read(bigdb, n_samples=n_samples)
+    len_sample = len(db_imgs)
+    if len_sample != n_samples:
+        raise ValueError('error loading subsample from database')
+    print('Tested ability to load a random subset of images - OK')
+
+    # now process that big dict in parallel to an ImageDict, with this tag order:
+    tagorder = ['l1', 'l2', 'l3', 'l4', 'l5', 'l6', 'l7', 'l8', 'l9']
+    date_start_big = datetime.now()
+    n_proc = 4
+    # for large dictionaries, we really do want this skip_key_relist set to True,
+    # as it saves a lot of time:
+    skip_key_relist = True
+    subdict_gen = imt.dict_split(biggus_dictus, n_split=n_proc,
+                                 extra_opts=(tagorder, skip_key_relist, None, None))
+    if n_proc == 1:
+        # much easier to debug when not using the parallel calls:
+        pool_out = []
+        for in_tuple in subdict_gen:
+            # now run the web_dir_process_images, and append the output to pool_out
+            pool_out.append(define_img_dict_in_tuple(in_tuple))
+    else:
+        # now in parallel:
+        proc_pool = Pool(n_proc)
+        pool_out = proc_pool.map(define_img_dict_in_tuple, subdict_gen)
+        proc_pool.close()
+        proc_pool.join()
+    # now stitch the parallel image dict back together:
+    biggus_dictus_imigus = pool_out[0]
+    for i_dict in range(1, len(pool_out)):
+        biggus_dictus_imigus.append(pool_out[i_dict])
+
+    # because we have appended to the dict without regenerating the
+    # lists, so do that now:
+    biggus_dictus_imigus.list_keys_by_depth()
+    print_simple_timer(date_start_big, datetime.now(),
+                       'Large parallel dict processing')
+    # and now make we big dict webpage (and time it too)
+    date_start_web = datetime.now()
+    out_page_big = os.path.join(webdir, 'biggus_pageus.html')
+    web_out[out_page_big] = imt.webpage.write_full_page(biggus_dictus_imigus,
+                                                        out_page_big,
+                                                        'Test ImageDict webpage',
+                                                        compression=True)
+    print_simple_timer(date_start_web, datetime.now(),
+                       'Large dict webpage')
+
+
+def test_key_sorting():
+    '''
+    Tests that the different variants of sorting in an ImageDict work
+    are working correctly. These are not all used in the type of web pages
+    used in the main tests so they are tested directly.
+    '''
+
+    # for each type of test, define the input keys and how they should be when
+    # they are sorted:
+    sort_tests = {}
+
+    # a straight alphabetical sort - the tuple here gives the
+    # (input, expected output) for the type of sort:
+    sort_tests['sort'] = (['aaa', 'zaa', 'aba', '257', 'bob'],
+                          ['257', 'aaa', 'aba', 'bob', 'zaa'])
+    # a reversed alphabetical sort:
+    sort_tests['reverse sort'] = (['aaa', 'zaa', 'aba', '257', 'bob'],
+                                  ['zaa', 'bob', 'aba', 'aaa', '257'])
+    # T+ - used for forecast lead times, so sort by the value after the T+
+    # and anything with None gets alphabetically sorted at the end
+    sort_tests['T+'] = (['T+0', 'T+1', 't+10', 'T+2', 't-3',
+                         'T+None', 't-None', 'None'],
+                        ['t-3', 'T+0', 'T+1', 'T+2', 't+10',
+                         'None', 'T+None', 't-None'])
+    # here, we will use a list to sort by, and anything not in the list
+    # gets a simple sort:
+    sort_by_list = ['aaa', 'zaa']
+    sort_tests['sort_by_list'] = (['aaa', 'zaa', 'aba', '257', 'bob'],
+                                  ['aaa', 'zaa', '257', 'aba', 'bob'])
+    # a set of numeric values common in meteorology:
+    sort_tests['numeric'] = (['10m', '50m', '4mm', '62 hPa', '2m', '16 km',
+                              'Model level 7', 'Surface', '12mb', '341.434646',
+                              'Eastern England',
+                              '3.344E, 16.7N', '2.344E, 18.7N', '16.0 nm'],
+                             ['Surface', '16.0 nm', '4mm', '2m', '10m', '50m',
+                              '16 km', '62 hPa', '12mb', 'Model level 7',
+                              '2.344E, 18.7N', '3.344E, 16.7N', '341.434646',
+                              'Eastern England',])
+    # these get used/modified while prepping the sort:
+    sort_tests_copy = copy.deepcopy(sort_tests)
+
+    test_order = sorted(sort_tests.keys())
+    n_sorts_to_test = len(test_order)
+    # make a dummy ImageDict
+    dummy_tag_order = []
+    dummy_tag_info = {}
+    for level in range(n_sorts_to_test):
+        lname = 'l{}'.format(level)
+        dummy_tag_order.append(lname)
+        dummy_tag_info[lname] = str(level)
+    tmp_dict = imt.dict_heirachy_from_list(dummy_tag_info,
+                                           'None', dummy_tag_order)
+    img_dict = imt.ImageDict(tmp_dict)
+
+    # now overide the keys of imd_dict with the keys we want to test,
+    # and make the list of how each level is to be sorted:
+    sort_methods = []
+    for level, test_name in enumerate(test_order):
+        img_dict.keys[level] = sort_tests[test_name][0]
+        if test_name == 'sort_by_list':
+            sort_methods.append(sort_by_list)
+        else:
+            sort_methods.append(test_name)
+    # now do the sort:
+    img_dict.sort_keys(sort_methods)
+
+    # now go through the sort methods and check the output is as expected:
+    failed = False
+    for level, test_name in enumerate(test_order):
+        if img_dict.keys[level] == sort_tests[test_name][1]:
+            pass
+        else:
+            msg = ('Sort method test "{}" has failed to correctly'
+                   'sort its ImageDict keys:\n'
+                   '  Input list: {}\n'
+                   '  Sorted list: {}\n'
+                   '  Expected list: {}\n')
+            print(msg.format(test_name,
+                             sort_tests_copy[test_name][0],
+                             img_dict.keys[level],
+                             sort_tests[test_name][1]))
+            failed = True
+
+    return not failed
+
+
+def test_compare_img_tags(img_tags1, name1, img_tags2, name2):
+    '''
+    Tests a set of images and metadata tags.
+     * img_tags1 - dict of images, and their metadata tags
+     * name1 - name of img_tags1 for error reporting only
+     * img_tags2 - second dict of images, and their metadata tags
+     * name2 - name of img_tags2 for error reporting only
+
+    This is not a simple '==' test, as the database will have None when the
+    item is missing for fields that are defined for some images, but not
+    all, images.
+    '''
+
+    # firstly check the keys:
+    imgs1 = sorted(img_tags1.keys())
+    imgs2 = sorted(img_tags2.keys())
+    if imgs1 != imgs2:
+        in1_not2 = set(imgs1).difference(set(imgs2))
+        in2_not1 = set(imgs2).difference(set(imgs1))
+
+        msg = ('image names in img_tags1 differ to image names in img_tags2.\n'
+               '  images in {0}(1), but not {1}(2): {2}\n'
+               '  images in {1}(2), but not {0}(1): {3}')
+        raise ValueError(msg.format(name1, name2, in1_not2, in2_not1))
+
+    for img in imgs1:
+        if img_tags1[img] != img_tags2[img]:
+            # test that all of the keys for this img that are shared,
+            # are equal:
+            i_t_keys = set(img_tags1[img].keys())
+            d_t_keys = set(img_tags2[img].keys())
+            common_keys = i_t_keys.intersection(d_t_keys)
+            for key in common_keys:
+                if img_tags1[img][key] != img_tags2[img][key]:
+                    msg = ('tags in "{}" for file "{}", tag "{}" ("{}") '
+                           'different to that in "{}" ("{}")')
+                    raise ValueError(msg.format(name1, img, key,
+                                                img_tags1[img][key],
+                                                name2, img_tags2[img][key]))
+
+            # in the current tests, the only difference should be that
+            # sometimes the 'SQL-char-name:in_tag' tag isn't present:
+            keys_diff = i_t_keys.symmetric_difference(d_t_keys)
+            if keys_diff != set(['SQL-char-name:in_tag']):
+                msg = 'Unexpected difference in keys in databases: {}'
+                raise ValueError(msg.format(keys_diff))
+
+
+def test_make_img_dict_sliders(images_and_tags, tagorder, img_dict,
+                               selector_animated=None, animation_direction=None,
+                               level_names=None, selector_widths=None):
+    '''
+    tests making an img_dict with explicit sliders:
+
+    images_and_tags - the dictionary holding all the images and their metadata
+    tagorder - the order of tags to sort the ImageDict by (the order of the \
+               dropdown menus in the webpage)
+    img_dict - a simple ImageDict representation of images_and_tags, sorted by \
+               tagorder with no side-by-side images or sliders. This is used to \
+               quickly find the correct images to be the other image in a \
+               slider. This is MUCH quicker than searching a database or the \
+               images_and_tags for the required image.
+
+    selector_animated - cosmetic option passed into an ImageDict
+    animation_direction - cosmetic option passed into an ImageDict
+    level_names - cosmetic option passed into an ImageDict
+    selector_widths - cosmetic option passed into an ImageDict
+    '''
+
+    slider_acts_on = 'plot type'
+    slider_combos = [['Histogram', 'Line plots']]
+    slider_show_2nd_img = False
+
+    # for this example, the 2 images with a smaller sample will have the
+    # plot for a larger sample size overlaid as a slider...
+    slider_acts_on = 'number of rolls'
+    slider_combos = [['36 simulated rolls', '216 simulated rolls'],
+                     ['6 simulated rolls', '216 simulated rolls']]
+    slider_show_2nd_img = True
+
+
+    # now assemble the ImageDict using the image metadata:
+    img_dict_s = None
+    # This is the simple way, but it is possible to parallelise
+    # this step as done below:
+    for img_file, img_info in images_and_tags.items():
+
+        # now check the slider_combos:
+        for slider in slider_combos:
+            if img_info[slider_acts_on] == slider[0]:
+                # use the img_dict to walk the tree to the image we want to
+                # comapre to using the slider
+                # (this is immediate and fast! compared to searching the
+                # database)
+                tmp = [img_info[tag] for tag in tagorder]
+                tmp[tagorder.index(slider_acts_on)] = slider[1]
+                img_file2 = img_dict.return_from_list(tmp)
+                if img_file2 is not None:
+                    # the 'payload' for this type of slider is a list of 2 images,
+                    # within a list. That way there can be sliders specified within mutliple
+                    # images.
+                    payload = [[img_file, img_file2]]
+                    tmp_dict = imt.dict_heirachy_from_list(img_info, payload, tagorder)
+                    break
+                else:
+                    tmp_dict = imt.dict_heirachy_from_list(img_info, img_file, tagorder)
+
+            elif img_info[slider_acts_on] == slider[1]:
+                if slider_show_2nd_img:
+                    # make a tmp_dict, as we ened to show this as a normal image:
+                    tmp_dict = imt.dict_heirachy_from_list(img_info, img_file, tagorder)
+                else:
+                    # we're not showing this image!
+                    tmp_dict = None
+            else:
+                # nothing going on here, make the payload as usual:
+                tmp_dict = imt.dict_heirachy_from_list(img_info, img_file, tagorder)
+
+        if tmp_dict is None:
+            continue
+
+        if not img_dict_s:
+            img_dict_s = imt.ImageDict(tmp_dict,
+                                       selector_animated=selector_animated,
+                                       animation_direction=animation_direction,
+                                       level_names=level_names,
+                                       selector_widths=selector_widths)
+        else:
+            img_dict_s.append(imt.ImageDict(tmp_dict, level_names=level_names))
+
+    return img_dict_s
+
 
 if __name__ == '__main__':
     __main__()

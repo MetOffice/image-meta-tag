@@ -37,19 +37,31 @@ from ImageMetaTag import RESERVED_TAGS
 
 class ImageDict(object):
     '''
-    A class which holds a heirachical dictionary of dictionaries, and the
+    A class which holds a heirachical dictionary of dictionaries, to hold the
+    relevant image metadata of a collection of images, as well as the
     associated methods for appending/removing dictionaries from it.
 
     The expected use case for the dictionary is to represent a large set of
     images, which can be organised by their metadata tags.
 
-    When used in this way, the ImageDict module contains functions to produce
-    web pages for browsing the images.
+    When used in this way, the ImageDict module is an input to functions
+    in :func:`ImageMetaTag.webpage that produce web pages for browsing the
+    images.
 
-    The input_dict should be a heirachical dictionary of dictionaries,
-    containing the image metadata, in the required order. In order to convert
-    a flat dictionary of metadata items, use
+    The input input_dict should be a heirachical dictionary of dictionaries,
+    containing the image metadata, in the required order that will form the
+    'route' a user needs to select to navigate to an image 'payload' on a
+    webpage.
+
+    For example, a 2 level input dictionary could be:
+    input_dict = {'Selection value 1': {'Selection value 2': \
+                  'relative/path/to/image/payload.png'}}.
+
+    In order to convert a flat dictionary of metadata items, use
     :func:`ImageMetaTag.dict_heirachy_from_list`
+
+    Some guidance on preparing the payload can be found at
+    :ref:`ImgDictPayloadNotes`
 
     Options:
      * level_names - a list of the tagnames, in full, giving a \
@@ -137,6 +149,12 @@ class ImageDict(object):
                 raise ValueError(msg.format(animation_direction))
             self.animation_direction = animation_direction
 
+        # if sliders are set explicity in any payload
+        # (as a 2 element list/tuple within a list)
+        # then we can't use last_img_in_list_is_slider=True
+        # in web pages
+        self.sliders_set_explicity = False
+
     def __repr__(self):
         outstr = 'ImageMetaTag ImageDict:\n'
         outstr = self.dict_print(self.dict, indent=1, outstr=outstr)
@@ -170,6 +188,8 @@ class ImageDict(object):
                     msg = ('Attempting to append two ImageDict objects with '
                            'different level_names')
                     raise ValueError(msg)
+
+        self.sliders_set_explicity = self.sliders_set_explicity or new_dict.sliders_set_explicity
 
     def dict_union(self, in_dict, new_dict):
         'produces the union of a dictionary of dictionaries'
@@ -364,13 +384,40 @@ class ImageDict(object):
             keys[depth].add(key)
             if isinstance(in_dict[key], dict):
                 self.keys_by_depth(in_dict[key], depth+1, keys, subdirs)
-            elif isinstance(in_dict[key], list):
-                # we have a list of images:
-                for img_file in in_dict[key]:
-                    subdirs.add(os.path.split(img_file)[0])
-            elif isinstance(in_dict[key], str):
-                # we have the location of a single image;
-                subdirs.add(os.path.split(in_dict[key])[0])
+            else:
+                # we have a payload. This can either be a string pointing
+                # to a single image, a list of images (or pairs of images)
+                # for multi image selections:
+                err_msg = ('Image "payload" at the end of an ImageDict '
+                           'tree must be a string, denoting a single file, '
+                           'or a list of images or pairs of images for '
+                           'multiple images for cross comparion. '
+                           'Pairs of images are used for sliders. '
+                           'Instead it is "{}"')
+                payload_valid = True
+                if isinstance(in_dict[key], str):
+                    # we have the location of a single image;
+                    subdirs.add(os.path.split(in_dict[key])[0])
+                elif isinstance(in_dict[key], list):
+                    # we have a list of images:
+                    for img_or_pair in in_dict[key]:
+                        if isinstance(in_dict[key], str):
+                            subdirs.add(os.path.split(img_or_pair)[0])
+                        elif isinstance(img_or_pair, (tuple, list)):
+                            if len(img_or_pair) != 2:
+                                payload_valid = False
+                            else:
+                                for img_path in img_or_pair:
+                                    subdirs.add(os.path.split(img_path)[0])
+                                # and make of note of this:
+                                self.sliders_set_explicity = True
+                elif in_dict[key] is None:
+                    # we have a null entry...
+                    pass
+                else:
+                    payload_valid = False
+                if not payload_valid:
+                    raise ValueError(err_msg.format(in_dict[key]))
         return keys, subdirs
 
     def key_at_depth(self, in_dict, depth):

@@ -121,7 +121,9 @@ def write_full_page(img_dict, filepath, title, page_filename=None, tab_s_name=No
                       load correctly in Internet Explorer, please try using firefox or Chrome.'
      * last_img_in_list_is_slider - for the 'horiz dropdowns' page style, when the image payload \
                                     contains a list of images, then when this is True, the last \
-                                    images is used as an on overlay/slider on the other images.
+                                    images is used as an on overlay/slider on the other images. \
+                                    This option cannot be used for ImageDicts that contain \
+                                    explicitly set slider pairs.
      * last_img_still_show - when last_img_in_list_is_slider applies a set of sliders, this \
                              toggles whether or not the last image is still shown, as a static \
                              image or not.
@@ -134,6 +136,16 @@ def write_full_page(img_dict, filepath, title, page_filename=None, tab_s_name=No
 
     if not (isinstance(img_dict, imt.ImageDict) or img_dict is None):
         raise ValueError('write_full_page works on an ImageMetaTag ImageDict.')
+
+    if last_img_in_list_is_slider and img_dict.sliders_set_explicity:
+        msg = ('Cannot use last_img_in_list_is_slider to set a '
+               'slider with this ImageDict because it uses '
+               'explicitly set slider pairs.')
+        raise ValueError(msg)
+    elif last_img_in_list_is_slider or img_dict.sliders_set_explicity:
+        sliders_required = True
+    else:
+        sliders_required = False
 
     if page_filename is None:
         page_filename = os.path.basename(filepath)
@@ -151,7 +163,7 @@ def write_full_page(img_dict, filepath, title, page_filename=None, tab_s_name=No
         # now make sure the required javascript library is copied over to the file_dir:
         js_css_files = copy_required_js_css_etc(file_dir, style,
                                             compression=compression,
-                                            last_img_in_list_is_slider=last_img_in_list_is_slider)
+                                            sliders_required=sliders_required)
         page_dependencies.extend(js_css_files)
 
         # we have real data to work with:
@@ -347,7 +359,7 @@ def write_full_page(img_dict, filepath, title, page_filename=None, tab_s_name=No
             write_js_placeholders(img_dict, file_obj=out_file, dict_depth=img_dict.dict_depth(),
                                   style=style, level_names=level_names,
                                   show_singleton_selectors=show_singleton_selectors,
-                                  last_img_in_list_is_slider=last_img_in_list_is_slider,
+                                  sliders_required=sliders_required,
                                   animated_level=anim_level, load_err_msg=load_err_msg)
 
         # the body is done, so the postamble comes in:
@@ -787,7 +799,7 @@ def write_js_placeholders(img_dict, file_obj=None, dict_depth=None,
                           selector_prefix=None,
                           style='horiz dropdowns', level_names=False,
                           show_singleton_selectors=True,
-                          last_img_in_list_is_slider=False,
+                          sliders_required=False,
                           animated_level=None, load_err_msg=None):
     '''
     Writes the placeholders into the page body, for the javascript to
@@ -896,7 +908,7 @@ def write_js_placeholders(img_dict, file_obj=None, dict_depth=None,
    <br>
 '''.format(anim_label))
 
-        if last_img_in_list_is_slider:
+        if sliders_required:
             # adds in the default slider position, if needed:
             file_obj.write('''
    <div id='slider'>
@@ -925,7 +937,7 @@ def write_js_placeholders(img_dict, file_obj=None, dict_depth=None,
         raise ValueError('"%s" tyle of content placeholder not defined' % style)
 
 def copy_required_js_css_etc(file_dir, style, compression=False,
-                             last_img_in_list_is_slider=False, overwrite=True):
+                             sliders_required=False, overwrite=True):
     '''
     Copies the required javascript library to the directory
     containing the required page (file_dir) for a given webpage style.
@@ -1002,7 +1014,7 @@ not being overwritten. Your webpage may be broken!'''.format(file_dir, imt_js_to
         # finally, make a note:
         js_css_files.append(js_to_copy)
 
-    if last_img_in_list_is_slider:
+    if sliders_required:
         files_to_copy = [IMG_COMP_STYLE, IMG_COMP_JS_FILE]
         for js_to_copy in files_to_copy:
 

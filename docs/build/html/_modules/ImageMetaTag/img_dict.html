@@ -4,10 +4,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ImageMetaTag.img_dict &#8212; ImageMetaTag 0.8.2 documentation</title>
+    <title>ImageMetaTag.img_dict &#8212; ImageMetaTag 0.8.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/sphinxdoc.css?v=34905f61" />
-    <script src="../../_static/documentation_options.js?v=dbee5847"></script>
+    <script src="../../_static/documentation_options.js?v=7f96dc5e"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -22,7 +22,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">ImageMetaTag 0.8.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">ImageMetaTag 0.8.3 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ImageMetaTag.img_dict</a></li> 
       </ul>
@@ -75,19 +75,31 @@
 <a class="viewcode-back" href="../../ImageDict.html#ImageMetaTag.ImageDict">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ImageDict</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    A class which holds a heirachical dictionary of dictionaries, and the</span>
+<span class="sd">    A class which holds a heirachical dictionary of dictionaries, to hold the</span>
+<span class="sd">    relevant image metadata of a collection of images, as well as the</span>
 <span class="sd">    associated methods for appending/removing dictionaries from it.</span>
 
 <span class="sd">    The expected use case for the dictionary is to represent a large set of</span>
 <span class="sd">    images, which can be organised by their metadata tags.</span>
 
-<span class="sd">    When used in this way, the ImageDict module contains functions to produce</span>
-<span class="sd">    web pages for browsing the images.</span>
+<span class="sd">    When used in this way, the ImageDict module is an input to functions</span>
+<span class="sd">    in :func:`ImageMetaTag.webpage that produce web pages for browsing the</span>
+<span class="sd">    images.</span>
 
-<span class="sd">    The input_dict should be a heirachical dictionary of dictionaries,</span>
-<span class="sd">    containing the image metadata, in the required order. In order to convert</span>
-<span class="sd">    a flat dictionary of metadata items, use</span>
+<span class="sd">    The input input_dict should be a heirachical dictionary of dictionaries,</span>
+<span class="sd">    containing the image metadata, in the required order that will form the</span>
+<span class="sd">    &#39;route&#39; a user needs to select to navigate to an image &#39;payload&#39; on a</span>
+<span class="sd">    webpage.</span>
+
+<span class="sd">    For example, a 2 level input dictionary could be:</span>
+<span class="sd">    input_dict = {&#39;Selection value 1&#39;: {&#39;Selection value 2&#39;: \</span>
+<span class="sd">                  &#39;relative/path/to/image/payload.png&#39;}}.</span>
+
+<span class="sd">    In order to convert a flat dictionary of metadata items, use</span>
 <span class="sd">    :func:`ImageMetaTag.dict_heirachy_from_list`</span>
+
+<span class="sd">    Some guidance on preparing the payload can be found at</span>
+<span class="sd">    :ref:`ImgDictPayloadNotes`</span>
 
 <span class="sd">    Options:</span>
 <span class="sd">     * level_names - a list of the tagnames, in full, giving a \</span>
@@ -175,6 +187,12 @@
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">animation_direction</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">animation_direction</span> <span class="o">=</span> <span class="n">animation_direction</span>
 
+        <span class="c1"># if sliders are set explicity in any payload</span>
+        <span class="c1"># (as a 2 element list/tuple within a list)</span>
+        <span class="c1"># then we can&#39;t use last_img_in_list_is_slider=True</span>
+        <span class="c1"># in web pages</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sliders_set_explicity</span> <span class="o">=</span> <span class="kc">False</span>
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">outstr</span> <span class="o">=</span> <span class="s1">&#39;ImageMetaTag ImageDict:</span><span class="se">\n</span><span class="s1">&#39;</span>
         <span class="n">outstr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict_print</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">outstr</span><span class="o">=</span><span class="n">outstr</span><span class="p">)</span>
@@ -209,7 +227,9 @@
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">level_names</span> <span class="o">!=</span> <span class="n">new_dict</span><span class="o">.</span><span class="n">level_names</span><span class="p">:</span>
                     <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Attempting to append two ImageDict objects with &#39;</span>
                            <span class="s1">&#39;different level_names&#39;</span><span class="p">)</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sliders_set_explicity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sliders_set_explicity</span> <span class="ow">or</span> <span class="n">new_dict</span><span class="o">.</span><span class="n">sliders_set_explicity</span></div>
 
 
 <div class="viewcode-block" id="ImageDict.dict_union">
@@ -437,13 +457,40 @@
             <span class="n">keys</span><span class="p">[</span><span class="n">depth</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">in_dict</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="nb">dict</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">keys_by_depth</span><span class="p">(</span><span class="n">in_dict</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">depth</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">subdirs</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">in_dict</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
-                <span class="c1"># we have a list of images:</span>
-                <span class="k">for</span> <span class="n">img_file</span> <span class="ow">in</span> <span class="n">in_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
-                    <span class="n">subdirs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">img_file</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">in_dict</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
-                <span class="c1"># we have the location of a single image;</span>
-                <span class="n">subdirs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">in_dict</span><span class="p">[</span><span class="n">key</span><span class="p">])[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># we have a payload. This can either be a string pointing</span>
+                <span class="c1"># to a single image, a list of images (or pairs of images)</span>
+                <span class="c1"># for multi image selections:</span>
+                <span class="n">err_msg</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Image &quot;payload&quot; at the end of an ImageDict &#39;</span>
+                           <span class="s1">&#39;tree must be a string, denoting a single file, &#39;</span>
+                           <span class="s1">&#39;or a list of images or pairs of images for &#39;</span>
+                           <span class="s1">&#39;multiple images for cross comparion. &#39;</span>
+                           <span class="s1">&#39;Pairs of images are used for sliders. &#39;</span>
+                           <span class="s1">&#39;Instead it is &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
+                <span class="n">payload_valid</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">in_dict</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="c1"># we have the location of a single image;</span>
+                    <span class="n">subdirs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">in_dict</span><span class="p">[</span><span class="n">key</span><span class="p">])[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">in_dict</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="c1"># we have a list of images:</span>
+                    <span class="k">for</span> <span class="n">img_or_pair</span> <span class="ow">in</span> <span class="n">in_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">in_dict</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                            <span class="n">subdirs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">img_or_pair</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+                        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">img_or_pair</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+                            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">img_or_pair</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                                <span class="n">payload_valid</span> <span class="o">=</span> <span class="kc">False</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="k">for</span> <span class="n">img_path</span> <span class="ow">in</span> <span class="n">img_or_pair</span><span class="p">:</span>
+                                    <span class="n">subdirs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">img_path</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+                                <span class="c1"># and make of note of this:</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">sliders_set_explicity</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">elif</span> <span class="n">in_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># we have a null entry...</span>
+                    <span class="k">pass</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">payload_valid</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">payload_valid</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">in_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
         <span class="k">return</span> <span class="n">keys</span><span class="p">,</span> <span class="n">subdirs</span></div>
 
 
@@ -1150,7 +1197,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../../index.html">ImageMetaTag 0.8.2 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">ImageMetaTag 0.8.3 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ImageMetaTag.img_dict</a></li> 
       </ul>

@@ -1,4 +1,4 @@
-// ImageMetaTag dropdown menu scripting - vn0.8.2
+// ImageMetaTag dropdown menu scripting - vn0.8.3
 // ImageMetaTag is a python package built around a wrapper for savefig in
 // matplotlib, which adds metadata tags to supported image file formats.
 // See https://github.com/MetOffice/image-meta-tag for details.
@@ -222,22 +222,33 @@ function apply_payload( payload ) {
     if (Array.isArray(payload)){
 	// how many images we have depends on what the last image is used for:
 	if (last_img_slider && payload.length > 1){
-            if (!last_img_still_show){
+            if (last_img_still_show){
+		// the last image is a slider underlay, but we want to show it:
+		var n_imgs = payload.length;
+		var this_img_slider = Array(n_imgs).fill(payload[n_imgs - 1]);
+		this_img_slider[n_imgs-1] = false
+		var payload_use = Array.from(payload);
+	    } else {
    		// if the last image is a slider then it won't be used as an
 		// image directly, so doesn't count:
       		var n_imgs = payload.length - 1;
-		var this_img_slider = Array(n_imgs).fill(true);
-	    } else {
-		// the last image is a slider underlay, but we want to show it:
-		var n_imgs = payload.length;
-		var this_img_slider = Array(n_imgs).fill(true);
-		this_img_slider[n_imgs-1] = false
+		var this_img_slider = Array(n_imgs).fill(payload[n_imgs]);
+		var payload_use = Array.from(payload);
 	    }
-    	    var slider_background = payload[payload.length - 1];
        	} else {
-	    // no sliders so show all the images
+	    // Sliders aren't set by logical switch. Either they're
+	    // set explicitly for some images, or there aren't any.
     	    var n_imgs = payload.length;
     	    var this_img_slider = Array(n_imgs).fill(false);
+	    // set this as default
+	    var payload_use = Array.from(payload);
+	    for (var i_img=0; i_img < n_imgs; i_img++){
+		var this_img_or_pair = payload[i_img];
+		if (Array.isArray(payload[i_img])){
+		    this_img_slider[i_img] = payload[i_img][1]
+		    payload_use[i_img] = payload[i_img][0]
+		}	
+            }
     	}
 
 	// the right number of rows for a squarish box is the floor of the square root of the number of images:
@@ -253,17 +264,21 @@ function apply_payload( payload ) {
         //the_file += " and " + n_cols.toString() + " columns";
         // TODO: sort out the screen width and set the image widths appropriately, so itfits the screensize:
         the_file = "<p><table cellspacing=2>";
-        for (var i_img=0; i_img < n_imgs; i_img++){
+       for (var i_img=0; i_img < n_imgs; i_img++){
             if (i_img % n_cols == 0){ the_file += "<tr>"}
-	    if (this_img_slider[i_img]){
-		    the_file += "<td>" + apply_slider(payload[i_img], slider_background, i_img) + "</td>";
+	    if (typeof this_img_slider[i_img] == 'string'){
+		    the_file += "<td>" + apply_slider(payload_use[i_img], this_img_slider[i_img], i_img) + "</td>";
 		} else {
-		    the_file += "<td><img src=" + payload[i_img] + "></td>";
+		    the_file += "<td><img src=" + payload_use[i_img] + "></td>";
 		}
         }
         the_file += "</table></p>";
     } else {
-        the_file = "<p><img src=" + payload + "></p>";
+	// the contents of the payload is a single image:
+	// For consistency, to stop the images jittering about, put it
+	// in a table too:
+	the_file = "<p><table cellspacing=2>"
+        the_file= "<tr><td><p><img src=" + payload + "></p></td></tr></table>";
     }
     // now set the_image div:
     var _ = document.getElementById("the_image");
@@ -294,13 +309,26 @@ function cache_payload( payload ){
     var n_imgs = img_list.length;
     // now loop through the images and cache them:
     for (var i_img=0; i_img < n_imgs; i_img++){
-	// just create an Image instance, with the src set, and it will be fetched
-	// in the background for when it's needed.
-	var cache_image = new Image();
-	cache_image.src = img_list[i_img];
+	if (Array.isArray(img_list[i_img])){
+	    if (img_list[i_img].length != 2){
+		console.log('Warning: unexpected length')
+	    } else {
+		cache_image(img_list[i_img][0]);
+		cache_image(img_list[i_img][1]);
+	    }
+	} else {
+	    cache_image(img_list[i_img])
+	}
     };
 };
 
+function cache_image( img_path ){
+    // just create an Image instance, with the src set, and it will be fetched
+    // in the background for when it's needed.
+    var cache_image = new Image();
+    cache_image.src = img_path;
+}
+    
 function update_selectors(options_at_depth, selected_at_depth, start_depth) {
     // updates the selectors with the choices valid for the current selection
     for (var depth=start_depth, len=options_at_depth.length; depth < len; depth++){
