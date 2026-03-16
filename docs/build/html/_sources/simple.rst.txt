@@ -1,5 +1,6 @@
-.. ImageMetaTag documentation for simplest_img_dict.py
+ImageMetaTag documentation for simplest_img_dict.py
 
+.. _simplest:
 ImageMetaTag - simplest_img_dict.py
 ========================================
 

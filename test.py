@@ -1509,7 +1509,23 @@ def test_compare_img_tags(img_tags1, name1, img_tags2, name2):
 def test_make_img_dict_sliders(images_and_tags, tagorder, img_dict,
                                selector_animated=None, animation_direction=None,
                                level_names=None, selector_widths=None):
-    'tests making an img_dict '
+    '''
+    tests making an img_dict with explicit sliders:
+
+    images_and_tags - the dictionary holding all the images and their metadata
+    tagorder - the order of tags to sort the ImageDict by (the order of the \
+               dropdown menus in the webpage)
+    img_dict - a simple ImageDict representation of images_and_tags, sorted by \
+               tagorder with no side-by-side images or sliders. This is used to \
+               quickly find the correct images to be the other image in a \
+               slider. This is MUCH quicker than searching a database or the \
+               images_and_tags for the required image.
+
+    selector_animated - cosmetic option passed into an ImageDict
+    animation_direction - cosmetic option passed into an ImageDict
+    level_names - cosmetic option passed into an ImageDict
+    selector_widths - cosmetic option passed into an ImageDict
+    '''
 
     slider_acts_on = 'plot type'
     slider_combos = [['Histogram', 'Line plots']]

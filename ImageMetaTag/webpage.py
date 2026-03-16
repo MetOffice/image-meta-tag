@@ -121,7 +121,9 @@ def write_full_page(img_dict, filepath, title, page_filename=None, tab_s_name=No
                       load correctly in Internet Explorer, please try using firefox or Chrome.'
      * last_img_in_list_is_slider - for the 'horiz dropdowns' page style, when the image payload \
                                     contains a list of images, then when this is True, the last \
-                                    images is used as an on overlay/slider on the other images.
+                                    images is used as an on overlay/slider on the other images. \
+                                    This option cannot be used for ImageDicts that contain \
+                                    explicitly set slider pairs.
      * last_img_still_show - when last_img_in_list_is_slider applies a set of sliders, this \
                              toggles whether or not the last image is still shown, as a static \
                              image or not.

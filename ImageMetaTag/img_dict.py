@@ -37,19 +37,31 @@ from ImageMetaTag import RESERVED_TAGS
 
 class ImageDict(object):
     '''
-    A class which holds a heirachical dictionary of dictionaries, and the
+    A class which holds a heirachical dictionary of dictionaries, to hold the
+    relevant image metadata of a collection of images, as well as the
     associated methods for appending/removing dictionaries from it.
 
     The expected use case for the dictionary is to represent a large set of
     images, which can be organised by their metadata tags.
 
-    When used in this way, the ImageDict module contains functions to produce
-    web pages for browsing the images.
+    When used in this way, the ImageDict module is an input to functions
+    in :func:`ImageMetaTag.webpage that produce web pages for browsing the
+    images.
 
-    The input_dict should be a heirachical dictionary of dictionaries,
-    containing the image metadata, in the required order. In order to convert
-    a flat dictionary of metadata items, use
+    The input input_dict should be a heirachical dictionary of dictionaries,
+    containing the image metadata, in the required order that will form the
+    'route' a user needs to select to navigate to an image 'payload' on a
+    webpage.
+
+    For example, a 2 level input dictionary could be:
+    input_dict = {'Selection value 1': {'Selection value 2': \
+                  'relative/path/to/image/payload.png'}}.
+
+    In order to convert a flat dictionary of metadata items, use
     :func:`ImageMetaTag.dict_heirachy_from_list`
+
+    Some guidance on preparing the payload can be found at
+    :ref:`ImgDictPayloadNotes`
 
     Options:
      * level_names - a list of the tagnames, in full, giving a \
