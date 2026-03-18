@@ -107,7 +107,8 @@
                     <span class="n">description</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">keywords</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">css</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">load_err_msg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">last_img_in_list_is_slider</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                    <span class="n">last_img_still_show</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                    <span class="n">last_img_still_show</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">default_slider_position</span><span class="o">=</span><span class="mi">80</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Writes out an :class:`ImageMetaTag.ImageDict` as a webpage, to a given file location.</span>
 <span class="sd">    The files are created as temporary files and when complete they replace any files that</span>
@@ -177,7 +178,10 @@
 <span class="sd">     * last_img_still_show - when last_img_in_list_is_slider applies a set of sliders, this \</span>
 <span class="sd">                             toggles whether or not the last image is still shown, as a static \</span>
 <span class="sd">                             image or not.</span>
-
+<span class="sd">     * default_slider_position - if sliders are required (last_img_in_list_is_slider or \</span>
+<span class="sd">                                 ImageDict.sliders_set_explicity == True) then this sets the \</span>
+<span class="sd">                                 default position when the page is loaded, as a percentage. Must \</span>
+<span class="sd">                                 be an integer or float. Default=80.</span>
 <span class="sd">    Returns a list of files that the the created webpage is dependent upon.</span>
 
 <span class="sd">    &#39;&#39;&#39;</span>
@@ -436,6 +440,7 @@
                                   <span class="n">style</span><span class="o">=</span><span class="n">style</span><span class="p">,</span> <span class="n">level_names</span><span class="o">=</span><span class="n">level_names</span><span class="p">,</span>
                                   <span class="n">show_singleton_selectors</span><span class="o">=</span><span class="n">show_singleton_selectors</span><span class="p">,</span>
                                   <span class="n">sliders_required</span><span class="o">=</span><span class="n">sliders_required</span><span class="p">,</span>
+                                  <span class="n">default_slider_position</span><span class="o">=</span><span class="n">default_slider_position</span><span class="p">,</span>
                                   <span class="n">animated_level</span><span class="o">=</span><span class="n">anim_level</span><span class="p">,</span> <span class="n">load_err_msg</span><span class="o">=</span><span class="n">load_err_msg</span><span class="p">)</span>
 
         <span class="c1"># the body is done, so the postamble comes in:</span>
@@ -896,8 +901,9 @@
                           <span class="n">selector_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                           <span class="n">style</span><span class="o">=</span><span class="s1">&#39;horiz dropdowns&#39;</span><span class="p">,</span> <span class="n">level_names</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                           <span class="n">show_singleton_selectors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                          <span class="n">animated_level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">load_err_msg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                           <span class="n">sliders_required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                          <span class="n">animated_level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">load_err_msg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                          <span class="n">default_slider_position</span><span class="o">=</span><span class="mi">80</span><span class="p">,):</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Writes the placeholders into the page body, for the javascript to</span>
 <span class="sd">    manipulate</span>
@@ -922,7 +928,14 @@
 <span class="sd">                      lines of this may be useful: &#39;If the page does not load \</span>
 <span class="sd">                      correctly in Internet Explorer, please try using \</span>
 <span class="sd">                      firefox or Chrome.&#39;</span>
+<span class="sd">     * sliders_required - True/False input to add necessary setup for image \</span>
+<span class="sd">                          sliders</span>
+<span class="sd">     * default_slider_position - default=80. The default position of the \</span>
+<span class="sd">                                 sliders on loading the page (in percent).</span>
 <span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">assert</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">default_slider_position</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)))</span>
+    <span class="k">assert</span><span class="p">(</span><span class="n">default_slider_position</span> <span class="o">&gt;=</span><span class="mi">0</span> <span class="ow">and</span> <span class="n">default_slider_position</span> <span class="o">&lt;=</span> <span class="mi">100</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">show_singleton_selectors</span><span class="p">:</span>
         <span class="c1"># work out which selectors we actually want to show:</span>
@@ -1009,9 +1022,9 @@
             <span class="c1"># adds in the default slider position, if needed:</span>
             <span class="n">file_obj</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;&#39;&#39;</span>
 <span class="s1">   &lt;div id=&#39;slider&#39;&gt;</span>
-<span class="s1">     Default slider position: &lt;input type=&quot;range&quot; min=&quot;1&quot; max=&quot;100&quot; value=&quot;80&quot; class=&quot;slider&quot; id=&quot;slider_default&quot;&gt;</span>
+<span class="s1">     Default slider position: &lt;input type=&quot;range&quot; min=&quot;1&quot; max=&quot;100&quot; value=&quot;</span><span class="si">{}</span><span class="s1">&quot; class=&quot;slider&quot; id=&quot;slider_default&quot;&gt;</span>
 <span class="s1">   &lt;/div&gt;</span>
-<span class="s1">&#39;&#39;&#39;</span><span class="p">)</span>
+<span class="s1">&#39;&#39;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">default_slider_position</span><span class="p">))</span>
 
         <span class="c1"># now add somewhere for the image to go:</span>
         <span class="k">if</span> <span class="n">load_err_msg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
