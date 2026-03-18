@@ -714,8 +714,11 @@ def __main__():
 
     # now write out the webpages:
     web_out = {}
+    web_titles = {}
+
+    web_titles[out_page] = 'Test ImageDict webpage'
     web_out[out_page] = imt.webpage.write_full_page(img_dict, out_page,
-                                                    'Test ImageDict webpage',
+                                                    web_titles[out_page],
                                                     preamble=webpage_preamble,
                                                     postamble=webpage_postamble,
                                                     initial_selectors=initial_selectors,
@@ -727,23 +730,27 @@ def __main__():
                                                     compression=test_zlib_compression)
 
     ie_warning = "If the page does not load correctly in Internet Explorer, please try using firefox or Chrome."
+    web_titles[out_page_para] = 'Parrallel - Test ImageDict webpage'
     web_out[out_page_para] = imt.webpage.write_full_page(img_dict, out_page_para,
-                                                         'Parrallel - Test ImageDict webpage',
+                                                         web_titles[out_page_para],
                                                          preamble=webpage_preamble,
                                                          postamble=webpage_postamble,
                                                          verbose=True,
                                                          only_show_rel_url=False,
                                                          load_err_msg=ie_warning)
     if not args.minimal:
+        web_titles[out_page_multi] = 'multi image - Test ImageDict webpage (default url_separator)'
         web_out[out_page_multi] = imt.webpage.write_full_page(img_dict_multi, out_page_multi,
-                                                              'multi image - Test ImageDict webpage',
+                                                              web_titles[out_page_multi],
                                                               preamble=webpage_preamble,
                                                               postamble=webpage_postamble,
                                                               postamble_no_imt_link=True,
                                                               last_img_in_list_is_slider=True,
-                                                              verbose=True, url_type='str')
+                                                              url_type='str',
+                                                              verbose=True)
+        web_titles[out_page_css] = 'CSS, multi image - Test ImageDict webpage'
         web_out[out_page_css] = imt.webpage.write_full_page(img_dict_multi, out_page_css,
-                                                            'CSS, multi image - Test ImageDict webpage',
+                                                            web_titles[out_page_css],
                                                             preamble=webpage_preamble,
                                                             postamble=webpage_postamble,
                                                             verbose=True, only_show_rel_url=True,
@@ -754,14 +761,16 @@ def __main__():
                                                             compression=test_zlib_compression,
                                                             css=test_css)
 
+        web_titles[out_page_slider] = 'Explicit Slider - Test ImageDict webpage (: sep)'
         web_out[out_page_slider] = imt.webpage.write_full_page(img_dict_sliders, out_page_slider,
-                                                              'Explicit Slider - Test ImageDict webpage',
-                                                              preamble=webpage_preamble,
-                                                              postamble=webpage_postamble,
-                                                              postamble_no_imt_link=True,
-                                                              last_img_in_list_is_slider=False,
-                                                              show_singleton_selectors=False,
-                                                              verbose=True, url_type='str')
+                                                               web_titles[out_page_slider],
+                                                               preamble=webpage_preamble,
+                                                               postamble=webpage_postamble,
+                                                               postamble_no_imt_link=True,
+                                                               last_img_in_list_is_slider=False,
+                                                               show_singleton_selectors=False,
+                                                               url_type='str', url_separator=':',
+                                                               verbose=True)
     sorts_work = test_key_sorting()
     if sorts_work:
         print('Sorting tests pass OK')
@@ -772,7 +781,7 @@ def __main__():
 
         # now, finally, produce a large ImageDict:
         if not args.no_biggus_dictus:
-            test_biggus_dictus(webdir, web_out)
+            test_biggus_dictus(webdir, web_titles, web_out)
 
         if not args.no_db_rebuild:
             print('Testing imt.db.scan_dir_for_db')
@@ -806,6 +815,7 @@ def __main__():
             print('Testing of database rebuild functionality complete.')
 
     print('Web page outputs\n', web_out)
+    make_webdir_homepage(webdir, web_titles, web_out)
 
     # testing files that have known problems:
     print('testing image_file_postproc on known problem images:')
@@ -976,6 +986,12 @@ def plot_random_data(random_data, i_rand, plot_col, col_name, trims, borders,
                     if img_count > 1 and img_count < 10:
                         # only add this one after the database exists,
                         # to test expandning the database:
+                        if img_count == 2:
+                            print(('adding in a new metadata item mid-run as a test. '
+                                   'This will induce a warning as it not an ideal '
+                                   'way to manage image metadata'))
+                        # we're also adding something with an SQL characeter (:in_tag)
+                        # in the name to test we're sanitising our inputs properly
                         img_tags['SQL-char-name:in_tag'] = 'testing SQL chars'
                     # now save the file with imt.savefig
                     # (deleting any pre-existing file first):
@@ -1225,7 +1241,7 @@ table {
     return css_file
 
 
-def test_biggus_dictus(webdir, web_out):
+def test_biggus_dictus(webdir, web_titles, web_out):
     'tests making and working with very very large databases'
 
     print('Producing a very large ImageDict, as a scalability and speed test')
@@ -1364,9 +1380,10 @@ def test_biggus_dictus(webdir, web_out):
     # and now make we big dict webpage (and time it too)
     date_start_web = datetime.now()
     out_page_big = os.path.join(webdir, 'biggus_pageus.html')
+    web_titles[out_page_big] = 'Very Large Test ImageDict webpage'
     web_out[out_page_big] = imt.webpage.write_full_page(biggus_dictus_imigus,
                                                         out_page_big,
-                                                        'Test ImageDict webpage',
+                                                        web_titles[out_page_big],
                                                         compression=True)
     print_simple_timer(date_start_web, datetime.now(),
                        'Large dict webpage')
@@ -1590,6 +1607,41 @@ def test_make_img_dict_sliders(images_and_tags, tagorder, img_dict,
 
     return img_dict_s
 
+
+def make_webdir_homepage(webdir, web_titles, web_out):
+    'writes a quick super simple webpage with links to the webpages created in this batch/run'
+
+    ind_page_name = 'index.html'
+    ind_page = os.path.join(webdir, ind_page_name)
+
+    content = []
+    for fullpath in web_out.keys():
+        pagename = os.path.split(fullpath)[1]
+        if pagename != fullpath[len(webdir)+1:]:
+            msg = 'web path is expected to be in webdir ({}), with no subdirectories: {}'
+            raise ValueError(msg.format(webdir, fullpath))
+
+        content.append((pagename, web_titles[fullpath]))
+
+    webdir_list = os.listdir(webdir)
+    for fname in webdir_list:
+        if fname.endswith('.html') and fname != ind_page_name:
+            content.append((fname, 'Previous run: {}'.format(fname)))
+
+    with open(ind_page, 'w', encoding='utf-8') as page:
+        page.write('<html>\n')
+        page.write('  <head>\n')
+        page.write('    <title>Contents page for ImageMetaTag test output</title>\n')
+        page.write('  </head>\n')
+        page.write('  <body>\n')
+        page.write('    <h1>Contents:</h1>\n')
+        page.write('    <ul>\n')
+        for url, title in content:
+            page.write('        <li><a href="{}">{}</a>\n'.format(url, title))
+        page.write('      </ul>\n')
+        page.write('    </ul>\n')
+        page.write('  </body>\n')
+        page.write('</html>\n')
 
 if __name__ == '__main__':
     __main__()

@@ -39,7 +39,7 @@ menus, but more will hopefully be added soon.
 Released under BSD 3-Clause License. See LICENSE for more details.
 '''
 
-import os, json, pdb, shutil, tempfile, copy, zlib
+import os, json, pdb, shutil, tempfile, copy, zlib, re
 from multiprocessing import Pool
 import numpy as np
 import ImageMetaTag as imt
@@ -63,7 +63,8 @@ def write_full_page(img_dict, filepath, title, page_filename=None, tab_s_name=No
                     compression=False,
                     initial_selectors=None, show_selector_names=False,
                     show_singleton_selectors=True, optgroups=None,
-                    url_type='int', only_show_rel_url=False, verbose=False,
+                    url_type='int', url_separator='\&',
+                    only_show_rel_url=False, verbose=False,
                     style='horiz dropdowns', write_intmed_tmpfile=False,
                     description=None, keywords=None, css=None,
                     load_err_msg=None,
@@ -102,7 +103,18 @@ def write_full_page(img_dict, filepath, title, page_filename=None, tab_s_name=No
                    more readable. This is passed into \
                    :func:`ImageMetaTag.webpage.write_js_to_header`.
      * url_type - determines the type of URL at the bottom of the ImageMetaTag section. Can be \
-                  'int' or 'str'.
+                  'int' or 'str'. 'int' produces reliable links that will always work, but \
+                  'str' produces links with human readable components.
+     * url_separator - for url_type='str', this sets the separator used between variables in \
+                       the URLs. This needs to be set with care. \
+                       The separator needs to a) not be present in the image metadata used for \
+                       selecting images, unless it is a rarely used special character (e.g. &), \
+                       or b) not be transformed by external \
+                       software packages such as Microsoft Safe Links and b) Not act as an html \
+                       special character which would modify subsequent characters (e.g. &).\
+                       Characters can be 'escaped' as special characters: e.g. '\&' will work \
+                       and pass through Safe Links (and will have \ added automatically).\
+                       Defaults to '\&', though ':' works well too.
      * only_show_rel_url - If True, the wepage will only show relative urls in is link section.
      * verbose - If True, stdout will be more verbose
      * style - the style of output page to write, currently only 'horiz dropdowns' is valid
@@ -181,7 +193,33 @@ def write_full_page(img_dict, filepath, title, page_filename=None, tab_s_name=No
         # this is the internal name the different selectors, associated lists for the selectors, and
         # the list of files (all with a numbered suffix):
         selector_prefix = 'sel'
-        url_separator = '|'
+
+        if url_type == 'int':
+            # for integer pages, the url separator can be simply set to something that works.
+            url_separator = ':'
+        else:
+            # otherwise, check what's been input:
+            separators_in_need_of_an_escape = ['&']
+
+            if url_separator.startswith('\\'):
+                url_sep_maxlen = 2
+            else:
+                url_sep_maxlen = 1
+            if len(url_separator) > url_sep_maxlen:
+                msg = ('Input url separator needs to be a single character '
+                           '(or single character with a \ in front), but is: {}')
+                raise ValueError(msg.format(url_separator))
+
+            if url_separator in separators_in_need_of_an_escape:
+                url_separator = '\{}'.format(url_separator)
+
+            bad_separators = re.compile('[A-Za-z0-9£\?¬|%]')
+            if bad_separators.search(url_separator):
+                prev_url_sep = url_separator
+                url_separator = '\&'
+                msg = 'warning: url_separator overriden from "{}" to "{}"'
+                print(msg.format(prev_url_sep, url_separator))
+                del prev_url_sep
 
     # now write the actual output file:
     if write_intmed_tmpfile:
@@ -394,7 +432,7 @@ def write_js_to_header(img_dict, initial_selectors=None, optgroups=None, style=N
                        file_obj=None, json_files=None, js_css_files=None,
                        pagename=None, tabname=None, selector_prefix=None,
                        show_singleton_selectors=True,
-                       url_separator='|', url_type='str', only_show_rel_url=False,
+                       url_separator='\&', url_type='str', only_show_rel_url=False,
                        ind=None, compression=False,
                        last_img_in_list_is_slider=False,
                        last_img_still_show=False,
@@ -430,8 +468,20 @@ def write_js_to_header(img_dict, initial_selectors=None, optgroups=None, style=N
     * selector_prefix - prefix to use for javascript selector names (defaults to 'sel')
     * show_singleton_selectors - When set to False, selectors that have only one element are \
                                 not displayed (default=True).
+
     * url_type - determines the type of URL at the bottom of the ImageMetaTag section. Can be \
-                 'int' or 'str'.
+                 'int' or 'str'. 'int' produces reliable links that will always work, but \
+                 'str' produces links with human readable components.
+    * url_separator - for url_type='str', this sets the separator used between variables in \
+                      the URLs. This needs to be set with care. \
+                      The separator needs to a) not be present in the image metadata used for \
+                      selecting images, unless it is a rarely used special character (e.g. &), \
+                      or b) not be transformed by external \
+                      software packages such as Microsoft Safe Links and b) Not act as an html \
+                      special character which would modify subsequent characters (e.g. &).\
+                      Characters can be 'escaped' as special characters: e.g. '\&' will work \
+                      and pass through Safe Links (and will have \ added automatically).\
+                      Defaults to '\&', though ':' works well too.
     * only_show_rel_url - If True, the wepage will only show relative urls in is link section.
     * ind - indentation going into the header section.
     * compression - Indicates the json file is compressed using zlib.
