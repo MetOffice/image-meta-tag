@@ -69,7 +69,8 @@ def write_full_page(img_dict, filepath, title, page_filename=None, tab_s_name=No
                     description=None, keywords=None, css=None,
                     load_err_msg=None,
                     last_img_in_list_is_slider=False,
-                    last_img_still_show=False):
+                    last_img_still_show=False,
+                    default_slider_position=80):
     '''
     Writes out an :class:`ImageMetaTag.ImageDict` as a webpage, to a given file location.
     The files are created as temporary files and when complete they replace any files that
@@ -139,7 +140,10 @@ def write_full_page(img_dict, filepath, title, page_filename=None, tab_s_name=No
      * last_img_still_show - when last_img_in_list_is_slider applies a set of sliders, this \
                              toggles whether or not the last image is still shown, as a static \
                              image or not.
-
+     * default_slider_position - if sliders are required (last_img_in_list_is_slider or \
+                                 ImageDict.sliders_set_explicity == True) then this sets the \
+                                 default position when the page is loaded, as a percentage. Must \
+                                 be an integer or float. Default=80.
     Returns a list of files that the the created webpage is dependent upon.
 
     '''
@@ -398,6 +402,7 @@ def write_full_page(img_dict, filepath, title, page_filename=None, tab_s_name=No
                                   style=style, level_names=level_names,
                                   show_singleton_selectors=show_singleton_selectors,
                                   sliders_required=sliders_required,
+                                  default_slider_position=default_slider_position,
                                   animated_level=anim_level, load_err_msg=load_err_msg)
 
         # the body is done, so the postamble comes in:
@@ -849,8 +854,9 @@ def write_js_placeholders(img_dict, file_obj=None, dict_depth=None,
                           selector_prefix=None,
                           style='horiz dropdowns', level_names=False,
                           show_singleton_selectors=True,
+                          animated_level=None, load_err_msg=None,
                           sliders_required=False,
-                          animated_level=None, load_err_msg=None):
+                          default_slider_position=80,):
     '''
     Writes the placeholders into the page body, for the javascript to
     manipulate
@@ -875,7 +881,14 @@ def write_js_placeholders(img_dict, file_obj=None, dict_depth=None,
                       lines of this may be useful: 'If the page does not load \
                       correctly in Internet Explorer, please try using \
                       firefox or Chrome.'
+     * sliders_required - True/False input to add necessary setup for image \
+                          sliders
+     * default_slider_position - default=80. The default position of the \
+                                 sliders on loading the page (in percent).
     '''
+
+    assert(isinstance(default_slider_position, (int, float)))
+    assert(default_slider_position >=0 and default_slider_position <= 100)
 
     if not show_singleton_selectors:
         # work out which selectors we actually want to show:
@@ -962,9 +975,9 @@ def write_js_placeholders(img_dict, file_obj=None, dict_depth=None,
             # adds in the default slider position, if needed:
             file_obj.write('''
    <div id='slider'>
-     Default slider position: <input type="range" min="1" max="100" value="80" class="slider" id="slider_default">
+     Default slider position: <input type="range" min="1" max="100" value="{}" class="slider" id="slider_default">
    </div>
-''')
+'''.format(default_slider_position))
 
         # now add somewhere for the image to go:
         if load_err_msg is None:

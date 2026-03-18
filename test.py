@@ -768,6 +768,7 @@ def __main__():
                                                                postamble=webpage_postamble,
                                                                postamble_no_imt_link=True,
                                                                last_img_in_list_is_slider=False,
+                                                               default_slider_position=50.345868723657823658923658923,
                                                                show_singleton_selectors=False,
                                                                url_type='str', url_separator=':',
                                                                verbose=True)
