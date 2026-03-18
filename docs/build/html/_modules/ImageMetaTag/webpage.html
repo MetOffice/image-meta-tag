@@ -75,7 +75,7 @@
 <span class="sd">Released under BSD 3-Clause License. See LICENSE for more details.</span>
 <span class="sd">&#39;&#39;&#39;</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">os</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">pdb</span><span class="o">,</span><span class="w"> </span><span class="nn">shutil</span><span class="o">,</span><span class="w"> </span><span class="nn">tempfile</span><span class="o">,</span><span class="w"> </span><span class="nn">copy</span><span class="o">,</span><span class="w"> </span><span class="nn">zlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span><span class="o">,</span><span class="w"> </span><span class="nn">pdb</span><span class="o">,</span><span class="w"> </span><span class="nn">shutil</span><span class="o">,</span><span class="w"> </span><span class="nn">tempfile</span><span class="o">,</span><span class="w"> </span><span class="nn">copy</span><span class="o">,</span><span class="w"> </span><span class="nn">zlib</span><span class="o">,</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pool</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">ImageMetaTag</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">imt</span>
@@ -101,7 +101,8 @@
                     <span class="n">compression</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                     <span class="n">initial_selectors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show_selector_names</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                     <span class="n">show_singleton_selectors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">optgroups</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                    <span class="n">url_type</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">only_show_rel_url</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">url_type</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">url_separator</span><span class="o">=</span><span class="s1">&#39;\&amp;&#39;</span><span class="p">,</span>
+                    <span class="n">only_show_rel_url</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                     <span class="n">style</span><span class="o">=</span><span class="s1">&#39;horiz dropdowns&#39;</span><span class="p">,</span> <span class="n">write_intmed_tmpfile</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                     <span class="n">description</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">keywords</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">css</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                     <span class="n">load_err_msg</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -140,7 +141,18 @@
 <span class="sd">                   more readable. This is passed into \</span>
 <span class="sd">                   :func:`ImageMetaTag.webpage.write_js_to_header`.</span>
 <span class="sd">     * url_type - determines the type of URL at the bottom of the ImageMetaTag section. Can be \</span>
-<span class="sd">                  &#39;int&#39; or &#39;str&#39;.</span>
+<span class="sd">                  &#39;int&#39; or &#39;str&#39;. &#39;int&#39; produces reliable links that will always work, but \</span>
+<span class="sd">                  &#39;str&#39; produces links with human readable components.</span>
+<span class="sd">     * url_separator - for url_type=&#39;str&#39;, this sets the separator used between variables in \</span>
+<span class="sd">                       the URLs. This needs to be set with care. \</span>
+<span class="sd">                       The separator needs to a) not be present in the image metadata used for \</span>
+<span class="sd">                       selecting images, unless it is a rarely used special character (e.g. &amp;), \</span>
+<span class="sd">                       or b) not be transformed by external \</span>
+<span class="sd">                       software packages such as Microsoft Safe Links and b) Not act as an html \</span>
+<span class="sd">                       special character which would modify subsequent characters (e.g. &amp;).\</span>
+<span class="sd">                       Characters can be &#39;escaped&#39; as special characters: e.g. &#39;\&amp;&#39; will work \</span>
+<span class="sd">                       and pass through Safe Links (and will have \ added automatically).\</span>
+<span class="sd">                       Defaults to &#39;\&amp;&#39;, though &#39;:&#39; works well too.</span>
 <span class="sd">     * only_show_rel_url - If True, the wepage will only show relative urls in is link section.</span>
 <span class="sd">     * verbose - If True, stdout will be more verbose</span>
 <span class="sd">     * style - the style of output page to write, currently only &#39;horiz dropdowns&#39; is valid</span>
@@ -219,7 +231,33 @@
         <span class="c1"># this is the internal name the different selectors, associated lists for the selectors, and</span>
         <span class="c1"># the list of files (all with a numbered suffix):</span>
         <span class="n">selector_prefix</span> <span class="o">=</span> <span class="s1">&#39;sel&#39;</span>
-        <span class="n">url_separator</span> <span class="o">=</span> <span class="s1">&#39;|&#39;</span>
+
+        <span class="k">if</span> <span class="n">url_type</span> <span class="o">==</span> <span class="s1">&#39;int&#39;</span><span class="p">:</span>
+            <span class="c1"># for integer pages, the url separator can be simply set to something that works.</span>
+            <span class="n">url_separator</span> <span class="o">=</span> <span class="s1">&#39;:&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># otherwise, check what&#39;s been input:</span>
+            <span class="n">separators_in_need_of_an_escape</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&amp;&#39;</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">url_separator</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">):</span>
+                <span class="n">url_sep_maxlen</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">url_sep_maxlen</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">url_separator</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">url_sep_maxlen</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Input url separator needs to be a single character &#39;</span>
+                           <span class="s1">&#39;(or single character with a \ in front), but is: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">url_separator</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">url_separator</span> <span class="ow">in</span> <span class="n">separators_in_need_of_an_escape</span><span class="p">:</span>
+                <span class="n">url_separator</span> <span class="o">=</span> <span class="s1">&#39;\</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">url_separator</span><span class="p">)</span>
+
+            <span class="n">bad_separators</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s1">&#39;[A-Za-z0-9£\?¬|%]&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">bad_separators</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">url_separator</span><span class="p">):</span>
+                <span class="n">prev_url_sep</span> <span class="o">=</span> <span class="n">url_separator</span>
+                <span class="n">url_separator</span> <span class="o">=</span> <span class="s1">&#39;\&amp;&#39;</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;warning: url_separator overriden from &quot;</span><span class="si">{}</span><span class="s1">&quot; to &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prev_url_sep</span><span class="p">,</span> <span class="n">url_separator</span><span class="p">))</span>
+                <span class="k">del</span> <span class="n">prev_url_sep</span>
 
     <span class="c1"># now write the actual output file:</span>
     <span class="k">if</span> <span class="n">write_intmed_tmpfile</span><span class="p">:</span>
@@ -435,7 +473,7 @@
                        <span class="n">file_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">json_files</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">js_css_files</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">pagename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tabname</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">selector_prefix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">show_singleton_selectors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                       <span class="n">url_separator</span><span class="o">=</span><span class="s1">&#39;|&#39;</span><span class="p">,</span> <span class="n">url_type</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="n">only_show_rel_url</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                       <span class="n">url_separator</span><span class="o">=</span><span class="s1">&#39;\&amp;&#39;</span><span class="p">,</span> <span class="n">url_type</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="n">only_show_rel_url</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                        <span class="n">ind</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                        <span class="n">last_img_in_list_is_slider</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                        <span class="n">last_img_still_show</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -471,8 +509,20 @@
 <span class="sd">    * selector_prefix - prefix to use for javascript selector names (defaults to &#39;sel&#39;)</span>
 <span class="sd">    * show_singleton_selectors - When set to False, selectors that have only one element are \</span>
 <span class="sd">                                not displayed (default=True).</span>
+
 <span class="sd">    * url_type - determines the type of URL at the bottom of the ImageMetaTag section. Can be \</span>
-<span class="sd">                 &#39;int&#39; or &#39;str&#39;.</span>
+<span class="sd">                 &#39;int&#39; or &#39;str&#39;. &#39;int&#39; produces reliable links that will always work, but \</span>
+<span class="sd">                 &#39;str&#39; produces links with human readable components.</span>
+<span class="sd">    * url_separator - for url_type=&#39;str&#39;, this sets the separator used between variables in \</span>
+<span class="sd">                      the URLs. This needs to be set with care. \</span>
+<span class="sd">                      The separator needs to a) not be present in the image metadata used for \</span>
+<span class="sd">                      selecting images, unless it is a rarely used special character (e.g. &amp;), \</span>
+<span class="sd">                      or b) not be transformed by external \</span>
+<span class="sd">                      software packages such as Microsoft Safe Links and b) Not act as an html \</span>
+<span class="sd">                      special character which would modify subsequent characters (e.g. &amp;).\</span>
+<span class="sd">                      Characters can be &#39;escaped&#39; as special characters: e.g. &#39;\&amp;&#39; will work \</span>
+<span class="sd">                      and pass through Safe Links (and will have \ added automatically).\</span>
+<span class="sd">                      Defaults to &#39;\&amp;&#39;, though &#39;:&#39; works well too.</span>
 <span class="sd">    * only_show_rel_url - If True, the wepage will only show relative urls in is link section.</span>
 <span class="sd">    * ind - indentation going into the header section.</span>
 <span class="sd">    * compression - Indicates the json file is compressed using zlib.</span>
