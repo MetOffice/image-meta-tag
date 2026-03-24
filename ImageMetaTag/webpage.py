@@ -63,7 +63,7 @@ def write_full_page(img_dict, filepath, title, page_filename=None, tab_s_name=No
                     compression=False,
                     initial_selectors=None, show_selector_names=False,
                     show_singleton_selectors=True, optgroups=None,
-                    url_type='int', url_separator='\&',
+                    url_type='int', url_separator=r'\&',
                     only_show_rel_url=False, verbose=False,
                     style='horiz dropdowns', write_intmed_tmpfile=False,
                     description=None, keywords=None, css=None,
@@ -113,9 +113,9 @@ def write_full_page(img_dict, filepath, title, page_filename=None, tab_s_name=No
                        or b) not be transformed by external \
                        software packages such as Microsoft Safe Links and b) Not act as an html \
                        special character which would modify subsequent characters (e.g. &).\
-                       Characters can be 'escaped' as special characters: e.g. '\&' will work \
-                       and pass through Safe Links (and will have \ added automatically).\
-                       Defaults to '\&', though ':' works well too.
+                       Characters can be 'escaped' as special characters: e.g. '\\\\&' will work \
+                       and pass through Safe Links (and will have \\\\ added automatically).\
+                       Defaults to '\\\\&', though ':' works well too.
      * only_show_rel_url - If True, the wepage will only show relative urls in is link section.
      * verbose - If True, stdout will be more verbose
      * style - the style of output page to write, currently only 'horiz dropdowns' is valid
@@ -211,16 +211,16 @@ def write_full_page(img_dict, filepath, title, page_filename=None, tab_s_name=No
                 url_sep_maxlen = 1
             if len(url_separator) > url_sep_maxlen:
                 msg = ('Input url separator needs to be a single character '
-                           '(or single character with a \ in front), but is: {}')
+                           '(or single character with a \\ in front), but is: {}')
                 raise ValueError(msg.format(url_separator))
 
             if url_separator in separators_in_need_of_an_escape:
-                url_separator = '\{}'.format(url_separator)
+                url_separator = '\\{}'.format(url_separator)
 
-            bad_separators = re.compile('[A-Za-z0-9£\?¬|%]')
+            bad_separators = re.compile(r'[A-Za-z0-9£\?¬|%]')
             if bad_separators.search(url_separator):
                 prev_url_sep = url_separator
-                url_separator = '\&'
+                url_separator = r'\&'
                 msg = 'warning: url_separator overriden from "{}" to "{}"'
                 print(msg.format(prev_url_sep, url_separator))
                 del prev_url_sep
@@ -437,7 +437,7 @@ def write_js_to_header(img_dict, initial_selectors=None, optgroups=None, style=N
                        file_obj=None, json_files=None, js_css_files=None,
                        pagename=None, tabname=None, selector_prefix=None,
                        show_singleton_selectors=True,
-                       url_separator='\&', url_type='str', only_show_rel_url=False,
+                       url_separator=r'\&', url_type='str', only_show_rel_url=False,
                        ind=None, compression=False,
                        last_img_in_list_is_slider=False,
                        last_img_still_show=False,
@@ -476,7 +476,7 @@ def write_js_to_header(img_dict, initial_selectors=None, optgroups=None, style=N
 
     * url_type - determines the type of URL at the bottom of the ImageMetaTag section. Can be \
                  'int' or 'str'. 'int' produces reliable links that will always work, but \
-                 'str' produces links with human readable components.
+                 'str' produces links with human-readable components.
     * url_separator - for url_type='str', this sets the separator used between variables in \
                       the URLs. This needs to be set with care. \
                       The separator needs to a) not be present in the image metadata used for \
@@ -484,9 +484,9 @@ def write_js_to_header(img_dict, initial_selectors=None, optgroups=None, style=N
                       or b) not be transformed by external \
                       software packages such as Microsoft Safe Links and b) Not act as an html \
                       special character which would modify subsequent characters (e.g. &).\
-                      Characters can be 'escaped' as special characters: e.g. '\&' will work \
-                      and pass through Safe Links (and will have \ added automatically).\
-                      Defaults to '\&', though ':' works well too.
+                      Characters can be 'escaped' as special characters: e.g. '\\\\&' will work \
+                      and pass through Safe Links (and will have \\\\ added automatically).\
+                      Defaults to '\\\\&', though ':' works well too.
     * only_show_rel_url - If True, the wepage will only show relative urls in is link section.
     * ind - indentation going into the header section.
     * compression - Indicates the json file is compressed using zlib.

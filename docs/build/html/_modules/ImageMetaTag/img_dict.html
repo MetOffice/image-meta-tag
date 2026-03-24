@@ -208,15 +208,19 @@
 <span class="sd">        The skip_key_relist option can be set to True to stop the</span>
 <span class="sd">        regeneration of key lists to speed up multiple appends.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
+
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_dict</span><span class="p">,</span> <span class="n">ImageDict</span><span class="p">):</span>
-            <span class="n">merged_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mergedicts</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">,</span> <span class="n">new_dict</span><span class="o">.</span><span class="n">dict</span><span class="p">))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dict</span> <span class="o">=</span> <span class="n">merged_dict</span>
+            <span class="n">new_</span> <span class="o">=</span> <span class="n">new_dict</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-            <span class="n">merged_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mergedicts</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">,</span> <span class="n">new_dict</span><span class="p">))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">dict</span> <span class="o">=</span> <span class="n">merged_dict</span>
+            <span class="n">new_</span> <span class="o">=</span> <span class="n">ImageDict</span><span class="p">(</span><span class="n">new_dict</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Cannot append data type </span><span class="si">{}</span><span class="s1"> to a ImageDict&#39;</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">new_dict</span><span class="p">)))</span>
+
+        <span class="c1"># do the merge of the dict contents:</span>
+        <span class="n">merged_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mergedicts</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">,</span> <span class="n">new_</span><span class="o">.</span><span class="n">dict</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dict</span> <span class="o">=</span> <span class="n">merged_dict</span>
+
         <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_key_relist</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">list_keys_by_depth</span><span class="p">(</span><span class="n">devmode</span><span class="o">=</span><span class="n">devmode</span><span class="p">)</span>
 
@@ -229,6 +233,7 @@
                            <span class="s1">&#39;different level_names&#39;</span><span class="p">)</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
+        <span class="c1"># combine any settings/switches held in the ImageDicts:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sliders_set_explicity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sliders_set_explicity</span> <span class="ow">or</span> <span class="n">new_dict</span><span class="o">.</span><span class="n">sliders_set_explicity</span></div>
 
 
