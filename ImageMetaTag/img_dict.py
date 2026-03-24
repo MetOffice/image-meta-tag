@@ -168,15 +168,19 @@ class ImageDict(object):
         The skip_key_relist option can be set to True to stop the
         regeneration of key lists to speed up multiple appends.
         '''
+
         if isinstance(new_dict, ImageDict):
-            merged_dict = dict(self.mergedicts(self.dict, new_dict.dict))
-            self.dict = merged_dict
+            new_ = new_dict
         elif isinstance(new_dict, dict):
-            merged_dict = dict(self.mergedicts(self.dict, new_dict))
-            self.dict = merged_dict
+            new_ = ImageDict(new_dict)
         else:
             msg = 'Cannot append data type {} to a ImageDict'
             raise ValueError(msg.format(type(new_dict)))
+
+        # do the merge of the dict contents:
+        merged_dict = dict(self.mergedicts(self.dict, new_.dict))
+        self.dict = merged_dict
+
         if not skip_key_relist:
             self.list_keys_by_depth(devmode=devmode)
 
@@ -189,7 +193,8 @@ class ImageDict(object):
                            'different level_names')
                     raise ValueError(msg)
 
-        self.sliders_set_explicity = self.sliders_set_explicity or new_dict.sliders_set_explicity
+        # combine any settings/switches held in the ImageDicts:
+        self.sliders_set_explicity = self.sliders_set_explicity or new_.sliders_set_explicity
 
     def dict_union(self, in_dict, new_dict):
         'produces the union of a dictionary of dictionaries'
@@ -876,7 +881,8 @@ def dict_split(in_dict, n_split=None, size_split=None, extra_opts=None):
     '''
 
     if not isinstance(in_dict, dict):
-        raise ValueError('Input in_dict is not a dictionary')
+        msg = 'Input in_dict is not a dictionary, but a {}'
+        raise ValueError(msg.format(type(in_dict)))
 
     if len(in_dict) == 0:
         # an empty dict needs to output an empty dict, possiblty with the

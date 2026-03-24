@@ -234,63 +234,17 @@ def __main__():
             img_dict.append(imt.ImageDict(tmp_dict,
                                           level_names=sel_names_list))
 
-    # Database integrity and optimisation tests:
-    # Firstly, read the database. This simply loads ALL of the image metadata:
-    db_imgs, db_img_tags = imt.db.read(imt_db)
-
-    # check that the database table contains ONLY the SQLITE_IMG_INFO_TABLE
-    dbcn, dbcr = imt.db.open_db_file(imt_db)
-    # check for the required table:
-    table_names = imt.db.list_tables(dbcr)
-    dbcn.close()
-    if table_names != [imt.db.SQLITE_IMG_INFO_TABLE]:
-        msg = 'Database integrity failre: database contains "{}", not "{}"'
-        raise ValueError(msg.format(table_names,
-                                    [imt.db.SQLITE_IMG_INFO_TABLE]))
-
-    # In this test though, we also need to verfiy the integrity of the
-    # database, relative to the plotting/pickling process:
-    img_list = sorted(images_and_tags.keys())
-    db_imgs.sort()
-    if img_list != db_imgs:
-        msg = ('List of plots differ between database and '
-               'plotting/pickle versions')
-        raise ValueError(msg)
-    if not args.skip_plotting:
-        # if we have done the plotting then these should match. If not, then
-        # the database delete test later on will mess this up:
-        test_compare_img_tags(images_and_tags, 'plot dict',
-                              db_img_tags, 'database dict')
-
-    # For memory optimisation of large image databases, we want to make sure
-    # the dictionary we get back is as small as possible in memory:
+    # do the database integrity checks (and use the output of that sometimes)
     #
     # these are the tags that we actually need to work with for the web page.
     # Others are ignored:
     required_tags = ['data source', 'number of rolls', 'plot type',
                      'plot color', 'image trim', 'border', 'expected dpi',
                      'image compression', 'SQL-char-name:in_tag']
-    db_imgs, db_img_tags = imt.db.read(imt_db, required_tags=required_tags)
-    # For more memory optimisation, this will return a list of all of the
-    # unique metadata strings, as there is usually a lot of duplication.
-    # The returned db_img_tags will then reference the strings witin
-    # that list, rahter than contain the duplicated strings. This saves a
-    # lot of memory for large databases of files.
-    tag_strings = []
-    db_imgs, db_img_tags = imt.db.read(imt_db, tag_strings=tag_strings)
-    # and this both filters out un-needed tags and uses the tag_strings
-    # list as a reference
-    tag_strings = []
-    db_imgs, db_img_tags = imt.db.read(imt_db, required_tags=required_tags,
-                                       tag_strings=tag_strings)
-
-    # test deleting a single image from the db file, and then add it back in:
-    del_img = db_imgs[0]
-    del_tags = db_img_tags[del_img]
-    imt.db.del_plots_from_dbfile(imt_db, del_img)
-    # now put it back in:
-    imt.db.write_img_to_dbfile(imt_db, del_img, del_tags)
-    print('Database integrity checks/memory optimsations completed')
+    tdic_out = test_database_integrity_checks(imt_db, images_and_tags,
+                                              required_tags,
+                                              skip_plotting=args.skip_plotting)
+    db_img_tags, tag_strings = tdic_out
 
     # Now make the next type of web page.
     # This test produces the same thing as before, but created in parallel.
@@ -418,7 +372,9 @@ def __main__():
                 tmp_dict = imt.dict_heirachy_from_list(img_info,
                                                        img_file,
                                                        tagorder)
-                img_dict_multi.append(imt.ImageDict(tmp_dict))
+                # here we test appending a dictionary, rather than
+                # and ImageDict.
+                img_dict_multi.append(tmp_dict)
 
             # now we are filterig one of the levels of the dict (multi_depth)
             # by the multi_keys list:
@@ -1242,6 +1198,71 @@ table {
     return css_file
 
 
+def test_database_integrity_checks(imt_db, images_and_tags,
+                                   required_tags,
+                                   skip_plotting=False):
+    'tests database integrity, and the tools used to do those checks'
+    # Database integrity and optimisation tests:
+    # Firstly, read the database. This simply loads ALL of the image metadata:
+    db_imgs, db_img_tags = imt.db.read(imt_db)
+
+    # check that the database table contains ONLY the SQLITE_IMG_INFO_TABLE
+    dbcn, dbcr = imt.db.open_db_file(imt_db)
+    # check for the required table:
+    table_names = imt.db.list_tables(dbcr)
+    dbcn.close()
+    if table_names != [imt.db.SQLITE_IMG_INFO_TABLE]:
+        msg = 'Database integrity failre: database contains "{}", not "{}"'
+        raise ValueError(msg.format(table_names,
+                                    [imt.db.SQLITE_IMG_INFO_TABLE]))
+
+    # In this test though, we also need to verfiy the integrity of the
+    # database, relative to the plotting/pickling process:
+    img_list = sorted(images_and_tags.keys())
+    db_imgs.sort()
+    if img_list != db_imgs:
+        msg = ('List of plots differ between database and '
+               'plotting/pickle versions')
+        raise ValueError(msg)
+    if not skip_plotting:
+        # if we have done the plotting then these should match. If not, then
+        # the database delete test later on will mess this up:
+        test_compare_img_tags(images_and_tags, 'plot dict',
+                              db_img_tags, 'database dict')
+
+    # For memory optimisation of large image databases, we want to make sure
+    # the dictionary we get back is as small as possible in memory by
+    # specyifying only the required_tags we need to load:
+    db_imgs, db_img_tags = imt.db.read(imt_db, required_tags=required_tags)
+
+    # As there is usually a lot of duplication in the database, this is
+    # another optimisation: Inputting a variable (usually initialised
+    # as an empty list) into the tag_stringss keywork will append all
+    # of the unique metadata strings to this list.
+    # The returned db_img_tags will then reference the strings witin
+    # that list, rather than contain the duplicated strings. This saves a
+    # lot of memory for large databases of files.
+    tag_strings = []
+    db_imgs, db_img_tags = imt.db.read(imt_db, tag_strings=tag_strings)
+
+
+    # and this both filters out un-needed tags and uses the tag_strings
+    # list as a reference. This combination is recommended for any large
+    # database of imagery.
+    tag_strings = []
+    db_imgs, db_img_tags = imt.db.read(imt_db, required_tags=required_tags,
+                                       tag_strings=tag_strings)
+
+    # test deleting a single image from the db file, and then add it back in:
+    del_img = db_imgs[0]
+    del_tags = db_img_tags[del_img]
+    imt.db.del_plots_from_dbfile(imt_db, del_img)
+    # now put it back in:
+    imt.db.write_img_to_dbfile(imt_db, del_img, del_tags)
+    print('Database integrity checks/memory optimsations completed')
+
+    return db_img_tags, tag_strings
+
 def test_biggus_dictus(webdir, web_titles, web_out):
     'tests making and working with very very large databases'
 
@@ -1641,6 +1662,7 @@ def make_webdir_homepage(webdir, web_titles, web_out):
             page.write('        <li><a href="{}">{}</a>\n'.format(url, title))
         page.write('      </ul>\n')
         page.write('    </ul>\n')
+        page.write('    <p>written: {}</p>\n'.format(datetime.now().strftime(DATE_FORMAT)))
         page.write('  </body>\n')
         page.write('</html>\n')
 

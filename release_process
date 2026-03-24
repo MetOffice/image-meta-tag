@@ -48,7 +48,7 @@ From this point onwards, admin rights are required to both image-meta-tag and im
 8) Publish a release in the image-meta-tag repository for the new release
 number at: https://github.com/MetOffice/image-meta-tag/releases
  * Tag version is just the version number e.g. '0.6.7' in the code.
- * The convention used for the release title adds 'vn' before the number, e.g.
+ * The convention used for the release title is to add 'vn' before the number, e.g.
    'vn0.6.7'
  * The release description can be used to give a very brief outline of the
    changes.
@@ -70,7 +70,8 @@ number at: https://github.com/MetOffice/image-meta-tag/releases
    * The version should point to the new version tag e.g. '0.6.7'
    * To get the sha256 values, download the tar file for the release, e.g.:
        https://github.com/MetOffice/image-meta-tag/archive/0.6.7.tar.gz
-     Then get the sha256sum of the tar file.
+     Extract the tar file and verify the contents match what is expected.
+     Then get the sha256sum of the tar file (sha256sum downloaded.tar.gz)
  * Commit to change with   git commit -a
  * Push the change to origin   git push origin vn0.6.7
  * Open a pull request to merge into upstream on the branches page:
