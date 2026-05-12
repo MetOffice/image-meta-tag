@@ -191,6 +191,7 @@ def merge_db_files(main_db_file, add_db_file, delete_add_db=False,
         if len(add_filelist) > 0:
             n_tries = 1
             wrote_db = False
+            last_err = None
             while not wrote_db and n_tries <= db_attempts:
                 try:
                     # open the main database
@@ -206,6 +207,7 @@ def merge_db_files(main_db_file, add_db_file, delete_add_db=False,
                     # finally close:
                     dbcn.close()
                 except sqlite3.OperationalError as op_err:
+                    last_err = op_err
                     if 'database is locked' in repr(op_err):
                         # database being locked is what the retries and timeouts are for:
                         print('%s database timeout writing to file "%s", %s s' \
@@ -218,7 +220,7 @@ def merge_db_files(main_db_file, add_db_file, delete_add_db=False,
 
             # if we went through all the attempts then it is time to raise the error:
             if n_tries > db_attempts:
-                msg = '{} for file {}'.format(op_err, main_db_file)
+                msg = '{} for file {}'.format(last_err, main_db_file)
                 raise sqlite3.OperationalError(msg)
 
     # delete or tidy:
