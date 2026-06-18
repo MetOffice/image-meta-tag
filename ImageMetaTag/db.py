@@ -191,6 +191,7 @@ def merge_db_files(main_db_file, add_db_file, delete_add_db=False,
         if len(add_filelist) > 0:
             n_tries = 1
             wrote_db = False
+            op_err = None
             while not wrote_db and n_tries <= db_attempts:
                 try:
                     # open the main database
@@ -208,18 +209,25 @@ def merge_db_files(main_db_file, add_db_file, delete_add_db=False,
                 except sqlite3.OperationalError as op_err:
                     if 'database is locked' in repr(op_err):
                         # database being locked is what the retries and timeouts are for:
-                        print('%s database timeout writing to file "%s", %s s' \
-                                        % (dt_now_str(), main_db_file, n_tries * db_timeout))
+                        msg = '{} database timeout writing to file "{}", {} s'
+                        print(msg.format(dt_now_str(), main_db_file, n_tries * db_timeout))
                         n_tries += 1
                     else:
                         # everything else needs to be reported and raised immediately:
                         msg = '{} for file {}'.format(op_err, main_db_file)
                         raise sqlite3.OperationalError(msg)
+                except Exception as other_errs:
+                    msg = 'Unexpected error merging onto file "{}:\n{}'
+                    raise Exception(msg.format(main_db_file, other_errs))
 
             # if we went through all the attempts then it is time to raise the error:
             if n_tries > db_attempts:
-                msg = '{} for file {}'.format(op_err, main_db_file)
-                raise sqlite3.OperationalError(msg)
+                if op_err is not None:
+                    msg = '{} for file {}'.format(op_err, main_db_file)
+                    raise sqlite3.OperationalError(msg)
+                else:
+                    msg = 'Unexpected error merging onto file "{}'
+                    raise Exception(msg.format(main_db_file))
 
     # delete or tidy:
     if delete_add_db:
